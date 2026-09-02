@@ -148,10 +148,9 @@ Not run here (no runner). Rationale for the self-hosted split from Phase 1 is in
 
 - `MetadataStore` is in-memory only (by design until Phase 8 / PostgreSQL). The
   trait boundary is in place; the PG implementation is future work.
-- E2E runs the contract chain at a 64 KiB test chunk size for speed; the real
-  32 MiB `BOUNDARY_SIZES` are exercised by the generator's own unit tests, not
-  end-to-end. One happy-path run does go through the spawned `space-cloud`
-  process.
+- E2E runs the contract chain at both the 64 KiB test chunk size and the real 32 MiB
+  `BOUNDARY_SIZES`. The 32 MiB boundary cases are exercised end-to-end through the
+  spawned `space-cloud` process.
 - `cargo nextest run --workspace` does **not** build workspace binaries; the
   harness needs `space-cloud`. `scripts/test.ps1` and CI build first; a bare
   `cargo nextest` without a prior build fails with a clear message.
