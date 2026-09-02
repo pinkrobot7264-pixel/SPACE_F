@@ -1,0 +1,7 @@
+rustc 1.98.0 (88d9e12ae 2026-08-18)
+cargo 1.98.0 (797e8a9bc 2026-08-05)
+cargo-nextest 0.9.143 (60fa45f63 2026-08-04)
+release: 0.9.143
+commit-hash: 60fa45f638ffc3f35e74afa65737f45fcd32db2a
+commit-date: 2026-08-04
+host: x86_64-pc-windows-msvc

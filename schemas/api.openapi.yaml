@@ -1,0 +1,281 @@
+openapi: 3.1.0
+info:
+  title: SPACE cloud API
+  version: "0.0.1"
+  description: >
+    Phase 0 contract (M0.8). Five operation groups plus /health. Every success
+    body carries `contract_version: 1`; every error body is
+    `{ contract_version, error }` where `error` is the SpaceError shape from
+    docs/protocols/errors.md. Identity path parameters use the prefixed display
+    form (f_, d_, v_, m_, b3:); in JSON bodies the UUID ids are transparent
+    (bare UUID) and ChunkId is the `b3:<hex>` string.
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: service is up
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+  /v1/files:
+    post:
+      operationId: createFile
+      description: Idempotent by the client-supplied `idempotency_key`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateFileRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/FileResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/files/{file_id}:
+    get:
+      operationId: statFile
+      parameters: [{ $ref: "#/components/parameters/FileId" }]
+      responses:
+        "200": { $ref: "#/components/responses/FileResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/dirs/{dir_id}/children:
+    get:
+      operationId: listChildren
+      parameters: [{ $ref: "#/components/parameters/DirId" }]
+      responses:
+        "200":
+          description: children of a directory, sorted by name
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListChildrenResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/files/{file_id}/versions:
+    post:
+      operationId: createVersion
+      description: Idempotent by the client-generated `version_id`.
+      parameters: [{ $ref: "#/components/parameters/FileId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateVersionRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/VersionResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/versions/{version_id}/commit:
+    post:
+      operationId: commitVersion
+      description: >
+        Idempotent -- re-committing an already-Committed version returns success.
+        Re-validates the full manifest before the version becomes authoritative.
+      parameters: [{ $ref: "#/components/parameters/VersionId" }]
+      responses:
+        "200": { $ref: "#/components/responses/VersionResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/manifests/{manifest_id}:
+    put:
+      operationId: putManifest
+      description: Idempotent by content. Rejects any manifest that fails validation.
+      parameters: [{ $ref: "#/components/parameters/ManifestId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PutManifestRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ManifestResponse" }
+        default: { $ref: "#/components/responses/Error" }
+    get:
+      operationId: getManifest
+      parameters: [{ $ref: "#/components/parameters/ManifestId" }]
+      responses:
+        "200": { $ref: "#/components/responses/ManifestResponse" }
+        default: { $ref: "#/components/responses/Error" }
+  /v1/chunks/{chunk_id}:
+    put:
+      operationId: putChunk
+      description: >
+        Idempotent by content address. Body is the raw chunk bytes. The server
+        verifies `chunk_id` addresses the bytes and registers chunk metadata.
+      parameters: [{ $ref: "#/components/parameters/ChunkId" }]
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: chunk registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChunkResponse" }
+        default: { $ref: "#/components/responses/Error" }
+    get:
+      operationId: getChunk
+      description: >
+        Whole object, or a byte range with a `Range: bytes=start-end` header
+        (206 Partial Content). A range past the stored object's end is an
+        integrity fault, not a short read.
+      parameters:
+        - { $ref: "#/components/parameters/ChunkId" }
+        - name: Range
+          in: header
+          required: false
+          schema: { type: string, example: "bytes=0-1048575" }
+      responses:
+        "200": { description: whole chunk, content: { application/octet-stream: { schema: { type: string, format: binary } } } }
+        "206": { description: chunk range, content: { application/octet-stream: { schema: { type: string, format: binary } } } }
+        default: { $ref: "#/components/responses/Error" }
+components:
+  parameters:
+    FileId: { name: file_id, in: path, required: true, schema: { type: string, pattern: "^f_" } }
+    DirId: { name: dir_id, in: path, required: true, schema: { type: string, pattern: "^d_" } }
+    VersionId: { name: version_id, in: path, required: true, schema: { type: string, pattern: "^v_" } }
+    ManifestId: { name: manifest_id, in: path, required: true, schema: { type: string, pattern: "^m_" } }
+    ChunkId: { name: chunk_id, in: path, required: true, schema: { type: string, pattern: "^b3:[0-9a-f]{64}$" } }
+  responses:
+    Error:
+      description: any error -- identical shape on every endpoint
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    FileResponse:
+      description: a file
+      content: { application/json: { schema: { $ref: "#/components/schemas/FileResponse" } } }
+    VersionResponse:
+      description: a version
+      content: { application/json: { schema: { $ref: "#/components/schemas/VersionResponse" } } }
+    ManifestResponse:
+      description: a manifest
+      content: { application/json: { schema: { $ref: "#/components/schemas/ManifestResponse" } } }
+  schemas:
+    ErrorCode:
+      type: string
+      enum: [CONFIG_MISSING, CONFIG_INVALID, CONFIG_UNSUPPORTED_VERSION, FILE_NOT_FOUND,
+        FILE_EXISTS, DIRECTORY_NOT_EMPTY, VERSION_NOT_FOUND, MANIFEST_NOT_FOUND,
+        CHUNK_NOT_FOUND, INVALID_PARAMETER, INVALID_HANDLE, INTEGRITY_HASH_MISMATCH,
+        INTEGRITY_LENGTH_MISMATCH, INTEGRITY_MANIFEST_INVALID, INTEGRITY_CHUNK_ID_CONFLICT,
+        NETWORK_TIMEOUT, NETWORK_UNAVAILABLE, PROTOCOL_VIOLATION, STORAGE_ERROR, DISK_FULL,
+        RESOURCE_EXHAUSTED, CANCELLED, SHARING_VIOLATION, AUTH_FAILED, PERMISSION_DENIED,
+        INTERNAL_ERROR]
+    SpaceError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { $ref: "#/components/schemas/ErrorCode" }
+        message: { type: string }
+        operation_id: { type: string, nullable: true }
+        request_id: { type: string, nullable: true }
+        source: { $ref: "#/components/schemas/SpaceError" }
+    ErrorResponse:
+      type: object
+      required: [contract_version, error]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        error: { $ref: "#/components/schemas/SpaceError" }
+    HealthResponse:
+      type: object
+      required: [status, service, version, contract_version]
+      properties:
+        status: { type: string, const: ok }
+        service: { type: string }
+        version: { type: string }
+        contract_version: { type: integer, const: 1 }
+    File:
+      type: object
+      required: [file_id, parent_id, name, created_at, modified_at]
+      properties:
+        file_id: { type: string }
+        parent_id: { type: string }
+        name: { type: string }
+        current_version_id: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        modified_at: { type: string, format: date-time }
+    VersionState: { type: string, enum: [CANDIDATE, COMMITTED] }
+    Version:
+      type: object
+      required: [version_id, file_id, manifest_id, state, created_at]
+      properties:
+        version_id: { type: string }
+        file_id: { type: string }
+        parent_version_id: { type: string, nullable: true }
+        manifest_id: { type: string }
+        state: { $ref: "#/components/schemas/VersionState" }
+        created_at: { type: string, format: date-time }
+    Chunk:
+      type: object
+      required: [chunk_id, size]
+      properties:
+        chunk_id: { type: string, pattern: "^b3:[0-9a-f]{64}$" }
+        size: { type: integer, format: int64 }
+    ManifestEntry:
+      type: object
+      required: [logical_offset, length, chunk_id, chunk_offset]
+      properties:
+        logical_offset: { type: integer, format: int64 }
+        length: { type: integer, format: int64 }
+        chunk_id: { type: string }
+        chunk_offset: { type: integer, format: int64 }
+    Manifest:
+      type: object
+      required: [manifest_id, total_size, chunk_count, entries, chunks]
+      properties:
+        manifest_id: { type: string }
+        total_size: { type: integer, format: int64 }
+        chunk_count: { type: integer, format: int64 }
+        entries: { type: array, items: { $ref: "#/components/schemas/ManifestEntry" } }
+        chunks: { type: array, items: { $ref: "#/components/schemas/Chunk" } }
+    CreateFileRequest:
+      type: object
+      additionalProperties: false
+      required: [parent_id, name, idempotency_key]
+      properties:
+        parent_id: { type: string }
+        name: { type: string }
+        idempotency_key: { type: string }
+    CreateVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [version_id, manifest_id]
+      properties:
+        version_id: { type: string }
+        parent_version_id: { type: string, nullable: true }
+        manifest_id: { type: string }
+    PutManifestRequest:
+      type: object
+      additionalProperties: false
+      required: [manifest]
+      properties:
+        manifest: { $ref: "#/components/schemas/Manifest" }
+    FileResponse:
+      type: object
+      required: [contract_version, file]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        file: { $ref: "#/components/schemas/File" }
+    ListChildrenResponse:
+      type: object
+      required: [contract_version, files]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        files: { type: array, items: { $ref: "#/components/schemas/File" } }
+    VersionResponse:
+      type: object
+      required: [contract_version, version]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        version: { $ref: "#/components/schemas/Version" }
+    ManifestResponse:
+      type: object
+      required: [contract_version, manifest]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        manifest: { $ref: "#/components/schemas/Manifest" }
+    ChunkResponse:
+      type: object
+      required: [contract_version, chunk]
+      properties:
+        contract_version: { type: integer, const: 1 }
+        chunk: { $ref: "#/components/schemas/Chunk" }
