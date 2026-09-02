@@ -37,7 +37,7 @@ jobs:
       - name: Release build must not enable fault injection
         shell: pwsh
         run: |
-          $out = cargo tree --workspace --release -f "{p} {f}" 2>&1 | Out-String
+          $out = cargo tree --workspace -f "{p} {f}" 2>&1 | Out-String
           if ($out -match "fault-injection") {
             throw "fault-injection feature enabled in release"
           }
