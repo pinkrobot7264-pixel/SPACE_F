@@ -1,0 +1,6 @@
+﻿[package]
+name = "tools-fixturegen"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

@@ -1,0 +1,6 @@
+﻿[package]
+name = "cloud-database"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

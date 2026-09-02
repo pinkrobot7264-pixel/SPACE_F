@@ -1,0 +1,9 @@
+﻿* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+tests/fixtures/** binary
+*.bin binary
+*.chunk binary

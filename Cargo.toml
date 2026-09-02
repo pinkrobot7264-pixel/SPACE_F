@@ -1,0 +1,26 @@
+﻿[workspace]
+resolver = "2"
+
+members = [
+    "contracts",
+    "objectstore",
+    "faults",
+    "client/core",
+    "client/config",
+    "client/main",
+    "cloud/api",
+    "cloud/auth",
+    "cloud/metadata",
+    "cloud/manifests",
+    "cloud/versions",
+    "cloud/chunks",
+    "cloud/database",
+    "tests/harness",
+    "tests/generators",
+    "tools/corruptor",
+    "tools/fixturegen"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"

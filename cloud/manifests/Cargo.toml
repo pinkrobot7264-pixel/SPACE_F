@@ -1,0 +1,6 @@
+﻿[package]
+name = "cloud-manifests"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

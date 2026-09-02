@@ -1,0 +1,6 @@
+﻿[package]
+name = "tests-generators"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

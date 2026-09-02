@@ -1,0 +1,10 @@
+﻿[package]
+name = "space-client"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "space-client"
+path = "src/main.rs"
+
+[dependencies]

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.28)
+project(space_client_adapter LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(WinFsp REQUIRED)
+add_subdirectory(client/winfsp-adapter)

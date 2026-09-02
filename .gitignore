@@ -1,0 +1,44 @@
+﻿# Secrets
+*.pem
+*.key
+*.pfx
+.env
+.env.*
+config.toml
+config.local.toml
+secrets/
+.aws/
+
+# Build
+build/
+out/
+target/
+*.obj
+*.exe
+*.pdb
+*.ilk
+
+# Runtime / generated
+runtime/
+cache/
+logs/
+*.log
+*.jsonl
+*.wal
+crash/
+*.dmp
+test-data/
+*.sqlite
+*.sqlite-*
+
+# IDE
+.vs/
+.vscode/
+*.user
+CMakeSettings.json
+.idea/
+
+# Misc
+__pycache__/
+.pytest_cache/
+*.pyc

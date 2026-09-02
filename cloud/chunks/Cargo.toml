@@ -1,0 +1,6 @@
+﻿[package]
+name = "cloud-chunks"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

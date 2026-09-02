@@ -1,0 +1,2 @@
+add_library(space_winfsp_adapter STATIC adapter.cpp)
+target_link_libraries(space_winfsp_adapter PRIVATE WinFsp::WinFsp)
