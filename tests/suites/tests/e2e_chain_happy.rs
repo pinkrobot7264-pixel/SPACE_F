@@ -12,6 +12,10 @@ use contracts::{DirectoryId, VersionId};
 use space_generators::{boundary_sizes_for, generate_manifest};
 
 async fn run_chain_for_size(cloud: &InProcCloud, size: u64, seed: u64) {
+    run_chain_for_size_with_chunk(cloud, size, E2E_CHUNK, seed).await;
+}
+
+async fn run_chain_for_size_with_chunk(cloud: &InProcCloud, size: u64, chunk_size: u64, seed: u64) {
     let client = &cloud.client;
     let dir = DirectoryId::new();
     let file = client
@@ -19,7 +23,7 @@ async fn run_chain_for_size(cloud: &InProcCloud, size: u64, seed: u64) {
         .await
         .expect("create file");
 
-    let (manifest, bodies) = generate_manifest(size, E2E_CHUNK, seed);
+    let (manifest, bodies) = generate_manifest(size, chunk_size, seed);
 
     for (chunk, body) in &bodies {
         let ack = client
@@ -71,6 +75,20 @@ async fn happy_chain_across_boundary_sizes() {
     let cloud = InProcCloud::start().await;
     for (i, size) in boundary_sizes_for(E2E_CHUNK).into_iter().enumerate() {
         run_chain_for_size(&cloud, size, 1000 + i as u64).await;
+    }
+}
+
+/// The manual (§16.1) mandates running the chain across `BOUNDARY_SIZES` -- the
+/// literal 32 MiB-relative constants (empty, tiny, 4 KiB page, exact chunk
+/// boundary, boundary +/-1, and 3-chunk +/-1). `happy_chain_across_boundary_sizes`
+/// runs the same pattern fast at 64 KiB every build; this one is the real thing
+/// (~20 s: nine sizes up to ~96 MiB through BLAKE3 + HTTP + range reassembly).
+/// It caught the missing chunk-PUT body limit that the 64 KiB run could not.
+#[tokio::test]
+async fn happy_chain_across_real_32mib_boundary_sizes() {
+    let cloud = InProcCloud::start().await;
+    for (i, &size) in space_generators::BOUNDARY_SIZES.iter().enumerate() {
+        run_chain_for_size_with_chunk(&cloud, size, space_generators::CHUNK, 2000 + i as u64).await;
     }
 }
 
