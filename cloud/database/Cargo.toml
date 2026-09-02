@@ -1,6 +1,7 @@
-﻿[package]
-name = "cloud-database"
+[package]
+name = "space-cloud-database"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]

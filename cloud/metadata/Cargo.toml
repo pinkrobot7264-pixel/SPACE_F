@@ -1,6 +1,14 @@
-﻿[package]
-name = "cloud-metadata"
+[package]
+name = "space-cloud-metadata"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
+contracts.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

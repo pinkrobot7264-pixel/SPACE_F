@@ -1,0 +1,24 @@
+[package]
+name = "space-test-suites"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+contracts.workspace = true
+objectstore.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+space-test-harness.workspace = true
+space-client-core.workspace = true
+space-generators.workspace = true
+space-corruptor.workspace = true
+space-cloud-api.workspace = true
+axum = { workspace = true }
+tokio = { workspace = true }

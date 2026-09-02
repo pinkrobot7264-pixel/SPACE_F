@@ -1,6 +1,12 @@
-﻿[package]
-name = "tests-generators"
+[package]
+name = "space-generators"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+publish = false
 
 [dependencies]
+contracts.workspace = true
+chrono.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true

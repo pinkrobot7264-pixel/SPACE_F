@@ -1,6 +1,18 @@
-﻿[package]
-name = "tests-harness"
+[package]
+name = "space-test-harness"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+publish = false
 
 [dependencies]
+contracts.workspace = true
+reqwest = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+# Ensures the cloud binary's package is part of the build graph for harness
+# self-tests. The binary path is resolved at runtime (see `cloud_bin`).
+space-cloud-api.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

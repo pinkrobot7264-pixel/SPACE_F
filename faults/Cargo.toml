@@ -1,6 +1,16 @@
-﻿[package]
+[package]
 name = "faults"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+
+[features]
+# OFF by default. CI asserts this feature is never enabled in a release build
+# (see .github/workflows/ci.yml, "Release build must not enable fault injection").
+default = []
+fault-injection = []
 
 [dependencies]
+contracts.workspace = true
+
+[dev-dependencies]

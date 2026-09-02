@@ -1,6 +1,9 @@
-﻿[package]
-name = "tools-fixturegen"
+[package]
+name = "space-fixturegen"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+publish = false
 
 [dependencies]
+space-generators.workspace = true

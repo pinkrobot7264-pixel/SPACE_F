@@ -1,6 +1,12 @@
-﻿[package]
-name = "tools-corruptor"
+[package]
+name = "space-corruptor"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+publish = false
 
 [dependencies]
+contracts.workspace = true
+
+[dev-dependencies]
+space-generators.workspace = true

@@ -1,6 +1,14 @@
-﻿[package]
+[package]
 name = "objectstore"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
+contracts.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

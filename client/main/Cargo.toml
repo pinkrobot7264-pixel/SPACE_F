@@ -1,10 +1,13 @@
-﻿[package]
+[package]
 name = "space-client"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [[bin]]
 name = "space-client"
 path = "src/main.rs"
 
 [dependencies]
+space-client-core.workspace = true
+tokio = { workspace = true }
