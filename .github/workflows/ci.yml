@@ -5,7 +5,6 @@ on: [push, pull_request]
 jobs:
   windows:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -15,8 +14,10 @@ jobs:
       - name: Verify WinFsp developer files
         shell: pwsh
         run: |
-          if (-not (Test-Path "C:\Program Files (x86)\WinFsp\inc\winfsp\winfsp.h")) {
-            throw "WinFsp developer files missing"
+          foreach ($p in @(
+            "C:\Program Files (x86)\WinFsp\inc\winfsp\winfsp.h",
+            "C:\Program Files (x86)\WinFsp\lib\winfsp-x64.lib")) {
+            if (-not (Test-Path $p)) { throw "WinFsp developer files missing: $p" }
           }
 
       - uses: dtolnay/rust-toolchain@stable
@@ -31,22 +32,33 @@ jobs:
       - name: Lint
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      - name: Build workspace (debug)
+        run: cargo build --workspace
+
       - name: Test
         run: cargo nextest run --workspace
+
+      - name: Release build
+        run: cargo build --workspace --release
 
       - name: Release build must not enable fault injection
         shell: pwsh
         run: |
-          $out = cargo tree --workspace -f "{p} {f}" 2>&1 | Out-String
-          if ($out -match "fault-injection") {
-            throw "fault-injection feature enabled in release"
-          }
+          $tree = cargo tree --workspace --edges features 2>&1 | Out-String
+          if ($tree -match "fault-injection") { throw "fault-injection feature enabled" }
 
-      - name: C++ adapter
+      # MSVC on PATH so Ninja invokes cl.exe, never MinGW (docs/runbooks/ci.md).
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: C++ WinFsp adapter (MSVC + Ninja)
         shell: pwsh
         run: |
+          where.exe cl
           cmake -B build -S . -G Ninja
-          cmake --build build --config Release
+          cmake --build build
 
       - name: Secret scan
         shell: pwsh

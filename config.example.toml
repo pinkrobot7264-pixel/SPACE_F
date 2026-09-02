@@ -1,0 +1,58 @@
+# SPACE client configuration -- template.
+#
+# Copy to config.toml (gitignored) and edit for your machine:
+#     Copy-Item config.example.toml config.toml
+#
+# Rules enforced by the loader (client/config):
+#   * config_version must be 1.
+#   * every numeric key below has a hard [min, max] bound.
+#   * NO credentials in this file. Keys ending _password / _secret / _token /
+#     _key are rejected. Secrets live in C:\SPACE\secrets or environment vars.
+#   * in a release build, wal_fsync_policy = "never" and auth_mode = "none" are
+#     rejected (they are test-only).
+
+config_version = 1
+
+[client]
+worker_threads = 4            # 1..=64
+callback_timeout_ms = 30000   # 100..=300000 -- no WinFsp callback may exceed this
+shutdown_deadline_ms = 10000  # 100..=120000 -- clean-shutdown budget
+mount_drive_letter = "S"      # single A-Z; dev uses S:
+
+[paths]
+runtime_dir = "C:/SPACE/runtime"
+cache_dir   = "C:/SPACE/runtime/cache"
+durable_dir = "C:/SPACE/runtime/durable"
+log_dir     = "C:/SPACE/runtime/logs"
+
+[chunking]
+chunk_size_bytes = 33554432   # 32 MiB (ADR-0003). 4096..=1073741824
+hash_algorithm   = "blake3"   # only "blake3" is accepted (ADR-0002)
+
+[cache]
+max_bytes       = 10737418240 # 10 GiB. Must be >= chunk_size_bytes
+eviction_policy = "slru"      # "lru" | "slru"
+
+[transfer]
+max_concurrent_requests = 16  # 1..=256
+connect_timeout_ms      = 10000  # 100..=120000
+request_timeout_ms      = 60000  # 100..=600000
+max_retries             = 5      # 0..=20
+backoff_base_ms         = 200    # 1..=60000
+
+[write]
+max_dirty_bytes  = 1073741824 # 1 GiB. Must be >= chunk_size_bytes
+wal_fsync_policy = "always"   # "always" | "interval" | "never" (never = test-only)
+
+[scheduler]
+foreground_priority   = 10    # 1..=100
+background_priority    = 1     # 1..=100, must be < foreground_priority
+max_prefetch_requests = 4     # 0..=64
+
+[cloud]
+base_url  = "http://127.0.0.1:8080"
+auth_mode = "token"           # "token" | "none" (none = test-only)
+
+[logging]
+level  = "info"               # "trace" | "debug" | "info" | "warn" | "error"
+format = "json"               # only "json" is accepted

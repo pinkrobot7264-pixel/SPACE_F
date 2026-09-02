@@ -30,6 +30,29 @@ Phase 0 CI covers:
 
 WinFsp Developer files are installed during CI and verified before the C++ adapter build.
 
+### C++ toolchain in CI
+
+The C++ adapter must be compiled by MSVC (`cl.exe`), never MinGW/GCC. Because the
+build uses the Ninja generator, CI initialises the MSVC developer environment
+with `ilammy/msvc-dev-cmd@v1` (arch `x64`) *before* the `cmake -B build -G Ninja`
+step, and asserts `cl` is on `PATH` (`where.exe cl`). Without that step Ninja on
+`windows-latest` would pick up whatever compiler it finds. `scripts/build.ps1`
+does the equivalent locally via `vcvars64.bat` when `cl` is not already on PATH.
+
+### Release fault-injection guard
+
+`cargo tree --workspace --edges features` must not mention `fault-injection`.
+`cargo tree` has no `--release` flag; the feature is off by default in the
+`faults` crate and nothing enables it, so its absence from the feature graph is
+the check.
+
+### Test binary dependency
+
+The integration harness (`space-test-harness`) and E2E suites spawn the built
+`space-cloud` binary. CI runs `cargo build --workspace` before `cargo nextest
+run --workspace` so the binary exists; the harness locates it by walking up from
+the test executable to `target/<profile>/`, or honours `SPACE_CLOUD_BIN`.
+
 
 
 ## Phase 1 and Later

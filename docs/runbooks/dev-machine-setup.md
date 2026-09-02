@@ -260,9 +260,35 @@ The test script verifies:
 
 - Rust formatting
 - Clippy with warnings denied
-- cargo-nextest workspace tests
+- cargo-nextest workspace tests (contracts, config, logging, faults, object
+  store conformance, generators, corruptor, metadata store, cloud API, client
+  core, integration harness, and the E2E happy + negative contract chains)
+- the release fault-injection guard
 
-At the initial M0.1 foundation stage there may be no implemented tests yet. Later Phase 0 sessions populate the test suites.
+One test is `#[ignore]`d: `space-generators streaming_full_gib` (a 1 GiB
+ChaCha8 pass is slow in a debug build). Run it with
+`cargo nextest run -p space-generators --run-ignored all` or in release.
+
+## Secret scanning
+
+`gitleaks` is installed (`winget install -e --id Gitleaks.Gitleaks`).
+`scripts/bootstrap.ps1` copies `scripts/pre-commit.sh` to
+`.git/hooks/pre-commit`, which runs `gitleaks protect --staged` and blocks a
+commit that stages a probable secret. CI additionally runs `gitleaks detect`.
+
+## PostgreSQL
+
+PostgreSQL 18 is installed (`C:\Program Files\PostgreSQL\18\bin` on PATH) so the
+bootstrap is complete, but Phase 0 does not use it: the cloud metadata store is
+in-memory behind the `MetadataStore` trait until Phase 8. The superuser password
+is stored in `C:\SPACE\secrets\postgres-superuser.txt` (not in Git).
+
+## Host / VM settings (reproduced by this runbook)
+
+- VirtualBox 7.x host; guest = Windows 11 Pro, EFI + Secure Boot + TPM 2.0.
+- Host hypervisor (`bcdedit /set hypervisorlaunchtype off`) and Memory Integrity
+  disabled so VirtualBox does not fall back to the slow compatibility path.
+- 3D acceleration off; `C:\SPACE` on the guest's own virtual disk only.
 
 ## Phase 0 Rule
 
