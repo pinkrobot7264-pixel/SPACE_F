@@ -1,0 +1,55 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install WinFsp
+        run: choco install winfsp -y --no-progress
+
+      - name: Verify WinFsp developer files
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\WinFsp\inc\winfsp\winfsp.h")) {
+            throw "WinFsp developer files missing"
+          }
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: taiki-e/install-action@nextest
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo nextest run --workspace
+
+      - name: Release build must not enable fault injection
+        shell: pwsh
+        run: |
+          $out = cargo tree --workspace --release -f "{p} {f}" 2>&1 | Out-String
+          if ($out -match "fault-injection") {
+            throw "fault-injection feature enabled in release"
+          }
+
+      - name: C++ adapter
+        shell: pwsh
+        run: |
+          cmake -B build -S . -G "Visual Studio 17 2022" -A x64
+          cmake --build build --config Release
+
+      - name: Secret scan
+        shell: pwsh
+        run: |
+          choco install gitleaks -y --no-progress
+          gitleaks detect --no-banner --redact
