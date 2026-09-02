@@ -231,6 +231,66 @@ C:\SPACE\src\space
 
 The repository contains the SPACE Rust workspace and C++ WinFsp adapter.
 
+## PostgreSQL 18
+
+Install it during Phase 0 setup so the bootstrap is complete, even though **no
+Phase 0 code uses it** -- the cloud metadata store is in-memory behind the
+`MetadataStore` trait. PostgreSQL is first *used* in **Phase 8** (backend +
+schema). Installing it now means Phase 8 does not start with an install.
+
+1. Download the EDB installer from
+   <https://www.postgresql.org/download/windows/> -- latest **18.x** (not 19,
+   which is beta into late 2026).
+2. Installer choices: components = Server + pgAdmin 4 + Command Line Tools
+   (untick Stack Builder); port `5432`; locale `C` (deterministic sort order in
+   tests); a strong superuser password saved to
+   `C:\SPACE\secrets\postgres-superuser.txt` (that path is git-ignored).
+3. Put `psql` on PATH:
+
+   ```powershell
+   [Environment]::SetEnvironmentVariable(
+     "Path", $env:Path + ";C:\Program Files\PostgreSQL\18\bin", "User")
+   ```
+
+4. Open a **new** PowerShell window, then `psql --version` (expect `psql (PostgreSQL) 18.x`).
+
+`verify-env.ps1` checks `psql --version` matches `1[89]\.` and fails the
+environment check if PostgreSQL is missing.
+
+## Python 3.12
+
+A supporting tool for repository helper scripts (no Phase 0 crate depends on
+it). Install during Phase 0 setup:
+
+```powershell
+winget install -e --id Python.Python.3.12   # tick "Add python.exe to PATH"
+```
+
+Open a new shell, then `python --version` (expect `3.12.x` or newer).
+`verify-env.ps1` checks `python --version` matches `3\.1[2-9]`.
+
+> If the Microsoft-Store `python.exe` alias intercepts the command, disable it
+> under *Settings -> Apps -> Advanced app settings -> App execution aliases*.
+
+## Secret scanning (gitleaks)
+
+Install during Phase 0 setup:
+
+```powershell
+winget install -e --id Gitleaks.Gitleaks
+```
+
+winget places a `gitleaks` shim in `%LOCALAPPDATA%\Microsoft\WinGet\Links`,
+which winget adds to the user PATH. Open a new shell, then `gitleaks version`.
+
+`scripts/bootstrap.ps1` re-checks for `gitleaks`, installs it via winget if
+missing, refreshes PATH in-session, and installs `scripts/pre-commit.sh` to
+`.git/hooks/pre-commit`. The hook resolves the `gitleaks` binary itself (PATH,
+then the winget shim/package locations), so it works regardless of the shell
+that runs `git commit`. It runs `gitleaks protect --staged` and blocks a commit
+that stages a probable secret. CI additionally runs `gitleaks detect`.
+`verify-env.ps1` checks `gitleaks version`.
+
 ## Build
 
 From:
@@ -262,26 +322,13 @@ The test script verifies:
 - Clippy with warnings denied
 - cargo-nextest workspace tests (contracts, config, logging, faults, object
   store conformance, generators, corruptor, metadata store, cloud API, client
-  core, integration harness, and the E2E happy + negative contract chains)
+  core, integration harness, request-id cross-process propagation, and the E2E
+  happy + negative contract chains including the real 32 MiB boundary sizes)
 - the release fault-injection guard
 
 One test is `#[ignore]`d: `space-generators streaming_full_gib` (a 1 GiB
 ChaCha8 pass is slow in a debug build). Run it with
 `cargo nextest run -p space-generators --run-ignored all` or in release.
-
-## Secret scanning
-
-`gitleaks` is installed (`winget install -e --id Gitleaks.Gitleaks`).
-`scripts/bootstrap.ps1` copies `scripts/pre-commit.sh` to
-`.git/hooks/pre-commit`, which runs `gitleaks protect --staged` and blocks a
-commit that stages a probable secret. CI additionally runs `gitleaks detect`.
-
-## PostgreSQL
-
-PostgreSQL 18 is installed (`C:\Program Files\PostgreSQL\18\bin` on PATH) so the
-bootstrap is complete, but Phase 0 does not use it: the cloud metadata store is
-in-memory behind the `MetadataStore` trait until Phase 8. The superuser password
-is stored in `C:\SPACE\secrets\postgres-superuser.txt` (not in Git).
 
 ## Host / VM settings (reproduced by this runbook)
 

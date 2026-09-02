@@ -29,11 +29,21 @@ Recorded at the Phase 0 exit gate. The `verify-env` script
 `chrono` 0.4 · `tracing` 0.1 · `tracing-subscriber` 0.3 ·
 `tracing-appender` 0.2 · `rand` 0.8 · `rand_chacha` 0.3 · `reqwest` 0.12.
 
-## Not used in Phase 0 but installed for a complete bootstrap
+## Installed during Phase 0 setup, not exercised by Phase 0 code
 
-- **PostgreSQL 18** -- metadata is in-memory behind a trait until Phase 8.
-- **gitleaks** -- secret scanning (pre-commit hook + CI).
-- **Python 3.12** -- helper scripts only.
+Per the execution manual (§1.10, §1.11) these are part of the Phase 0 machine
+bootstrap and are checked by `scripts/verify-env.ps1`, but no Phase 0 crate
+depends on them. Install steps are in `docs/runbooks/dev-machine-setup.md`.
+
+| Tool | Installed via | First *used* by |
+|---|---|---|
+| **PostgreSQL 18** | EDB installer | **Phase 8** -- backend + schema; until then the cloud metadata store is in-memory behind the `MetadataStore` trait |
+| **gitleaks** | `winget install -e --id Gitleaks.Gitleaks` | Phase 0 -- pre-commit hook + CI `gitleaks detect` |
+| **Python 3.12** | `winget install -e --id Python.Python.3.12` | repository helper scripts (as needed) |
+
+On any given developer machine these may or may not be present yet; the clean-VM
+bootstrap (restore snapshot -> follow the runbook -> `bootstrap.ps1`) is what
+establishes and verifies them.
 
 ## Release profile
 
