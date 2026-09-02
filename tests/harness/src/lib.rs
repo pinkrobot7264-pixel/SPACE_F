@@ -98,6 +98,12 @@ impl TestEnv {
         env
     }
 
+    /// Directory the spawned `space-cloud` writes its JSONL logs to
+    /// (`SPACE_CLOUD_LOG_DIR`). Used by the request-id propagation test.
+    pub fn cloud_log_dir(&self) -> &std::path::Path {
+        &self.log_dir
+    }
+
     async fn wait_healthy(&mut self) {
         let client = reqwest::Client::new();
         let deadline = Instant::now() + Duration::from_secs(20);

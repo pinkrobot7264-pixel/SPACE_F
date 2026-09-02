@@ -13,7 +13,7 @@
 use std::sync::Arc;
 
 use axum::body::Bytes;
-use axum::extract::{Path, Request, State};
+use axum::extract::{DefaultBodyLimit, Path, Request, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
@@ -29,6 +29,11 @@ use objectstore::{FakeObjectStore, ObjectStore};
 use space_cloud_metadata::{InMemoryMetadataStore, MetadataStore};
 
 pub const REQUEST_ID_HEADER: &str = "x-request-id";
+
+/// Maximum accepted chunk-body size for `PUT /v1/chunks/{id}`. Matches the upper
+/// bound of `config.chunking.chunk_size_bytes` (1 GiB); axum's 2 MB default
+/// would reject a chunk at the 32 MiB working size (ADR-0003).
+pub const MAX_CHUNK_BODY_BYTES: usize = 1 << 30;
 
 pub struct AppState {
     pub meta: InMemoryMetadataStore,
@@ -59,7 +64,12 @@ pub fn router(state: SharedState) -> Router {
             "/v1/manifests/:manifest_id",
             put(put_manifest).get(get_manifest),
         )
-        .route("/v1/chunks/:chunk_id", put(put_chunk).get(get_chunk))
+        .route(
+            "/v1/chunks/:chunk_id",
+            put(put_chunk)
+                .get(get_chunk)
+                .layer(DefaultBodyLimit::max(MAX_CHUNK_BODY_BYTES)),
+        )
         .route("/v1/_slow/:ms", get(slow))
         .fallback(not_found)
         .layer(middleware::from_fn(request_id_layer))
@@ -69,6 +79,8 @@ pub fn router(state: SharedState) -> Router {
 // ---- request-id middleware ------------------------------------------------
 
 async fn request_id_layer(mut req: Request, next: Next) -> Response {
+    use tracing::Instrument;
+
     let inbound = req
         .headers()
         .get(REQUEST_ID_HEADER)
@@ -76,18 +88,42 @@ async fn request_id_layer(mut req: Request, next: Next) -> Response {
         .filter(|s| contracts::RequestId::parse(s).is_ok())
         .map(|s| s.to_string());
 
+    let minted = inbound.is_none();
     let request_id = inbound.unwrap_or_else(|| contracts::RequestId::new().to_string());
-    let span = tracing::info_span!("request", request_id = %request_id);
-    let _enter = span.enter();
+    let method = req.method().to_string();
+    let path = req.uri().path().to_string();
 
-    if let Ok(hv) = HeaderValue::from_str(&request_id) {
+    let echo = HeaderValue::from_str(&request_id).ok();
+    if let Some(hv) = &echo {
         req.headers_mut().insert(REQUEST_ID_HEADER, hv.clone());
-        let mut res = next.run(req).await;
-        res.headers_mut().insert(REQUEST_ID_HEADER, hv);
-        res
-    } else {
-        next.run(req).await
     }
+
+    let span = tracing::info_span!("http_request", request_id = %request_id);
+    let rid = request_id.clone();
+    async move {
+        let started = std::time::Instant::now();
+        let mut res = next.run(req).await;
+        if let Some(hv) = echo {
+            res.headers_mut().insert(REQUEST_ID_HEADER, hv);
+        }
+        // One structured line per request, carrying the propagated request_id
+        // (M0.6). `request_id_minted` distinguishes an adopted inbound id from a
+        // server-generated one.
+        tracing::info!(
+            request_id = %rid,
+            operation = "http_request",
+            method = %method,
+            path = %path,
+            status = res.status().as_u16(),
+            request_id_minted = minted,
+            duration_ms = started.elapsed().as_millis() as u64,
+            result = if res.status().is_server_error() { "error" } else { "ok" },
+            msg = "request completed"
+        );
+        res
+    }
+    .instrument(span)
+    .await
 }
 
 // ---- error mapping -------------------------------------------------------
@@ -375,6 +411,38 @@ mod tests {
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["error"]["code"], "FILE_NOT_FOUND");
         assert_eq!(v["contract_version"], 1);
+    }
+
+    #[tokio::test]
+    async fn chunk_put_accepts_a_body_larger_than_axums_2mb_default() {
+        // Regression guard for MAX_CHUNK_BODY_BYTES: the 32 MiB working chunk
+        // size (ADR-0003) must not be rejected by axum's default body limit.
+        let app = router(Arc::new(AppState::default()));
+        let body = vec![0x5Au8; 5 * 1024 * 1024]; // 5 MiB > 2 MiB default
+        let id = contracts::ChunkId::from_bytes(&body);
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri(format!("/v1/chunks/{id}"))
+                    .header(REQUEST_ID_HEADER, contracts::RequestId::new().to_string())
+                    .body(axum::body::Body::from(body.clone()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "5 MiB chunk PUT must be accepted"
+        );
+        let v: serde_json::Value = serde_json::from_slice(
+            &axum::body::to_bytes(res.into_body(), 1 << 20)
+                .await
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(v["chunk"]["size"], body.len());
     }
 
     #[test]

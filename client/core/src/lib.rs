@@ -47,11 +47,48 @@ impl CloudClient {
         rb: reqwest::RequestBuilder,
     ) -> Result<T, SpaceError> {
         let rid = RequestId::new().to_string();
-        let resp = rb
+        let req = rb
             .header(REQUEST_ID_HEADER, &rid)
-            .send()
-            .await
+            .build()
             .map_err(net_error)?;
+        let method = req.method().to_string();
+        let path = req.url().path().to_string();
+        let started = std::time::Instant::now();
+
+        let result = self.execute_and_parse(req).await;
+
+        // One structured line per cloud call, carrying the exact request_id sent
+        // on the wire (M0.6). The cloud logs the same id against the same path.
+        let duration_ms = started.elapsed().as_millis() as u64;
+        match &result {
+            Ok(_) => tracing::info!(
+                request_id = %rid,
+                operation = "cloud_call",
+                method = %method,
+                path = %path,
+                duration_ms,
+                result = "ok",
+                msg = "cloud request"
+            ),
+            Err(e) => tracing::warn!(
+                request_id = %rid,
+                operation = "cloud_call",
+                method = %method,
+                path = %path,
+                duration_ms,
+                result = "error",
+                error_code = %format!("{:?}", e.code),
+                msg = "cloud request failed"
+            ),
+        }
+        result
+    }
+
+    async fn execute_and_parse<T: serde::de::DeserializeOwned>(
+        &self,
+        req: reqwest::Request,
+    ) -> Result<T, SpaceError> {
+        let resp = self.http.execute(req).await.map_err(net_error)?;
         let status = resp.status();
         let bytes = resp.bytes().await.map_err(net_error)?;
         if status.is_success() {

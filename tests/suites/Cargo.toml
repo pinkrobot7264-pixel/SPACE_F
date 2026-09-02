@@ -21,4 +21,5 @@ space-generators.workspace = true
 space-corruptor.workspace = true
 space-cloud-api.workspace = true
 axum = { workspace = true }
+reqwest = { workspace = true }
 tokio = { workspace = true }
