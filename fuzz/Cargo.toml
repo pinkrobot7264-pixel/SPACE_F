@@ -1,0 +1,60 @@
+[package]
+name = "space-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+# Its own workspace: cargo-fuzz builds with nightly and sanitizer flags that
+# must not leak into the main workspace's builds.
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+space-client-core = { path = "../client/core" }
+contracts = { path = "../contracts" }
+
+[[bin]]
+name = "fuzz_path"
+path = "fuzz_targets/fuzz_path.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_read_args"
+path = "fuzz_targets/fuzz_read_args.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_write_args"
+path = "fuzz_targets/fuzz_write_args.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_handle"
+path = "fuzz_targets/fuzz_handle.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_cursor"
+path = "fuzz_targets/fuzz_cursor.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_op_sequence"
+path = "fuzz_targets/fuzz_op_sequence.rs"
+test = false
+doc = false
+bench = false

@@ -43,3 +43,10 @@ __pycache__/
 .pytest_cache/
 *.pyc
 build-ninja/
+
+# cargo-fuzz build output and generated corpus. Crash inputs are promoted to
+# tests/fixtures/fuzz-corpus/ by scripts/fuzz.ps1 and ARE tracked -- every crash
+# input becomes a permanent regression test (manual section 14.1).
+fuzz/target/
+fuzz/corpus/
+fuzz/Cargo.lock
