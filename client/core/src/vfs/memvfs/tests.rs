@@ -12,7 +12,6 @@ use std::time::Duration;
 
 use contracts::ErrorCode;
 
-use crate::vfs::ids::GenId;
 use crate::vfs::invariants::VfsDiagnostics;
 use crate::vfs::limits::{Limits, PathLimits};
 use crate::vfs::types::*;
@@ -493,7 +492,6 @@ fn fires_inv_fs_4_when_an_unlinked_node_was_not_reclaimed() {
         n.open_count = 0;
         // and drop the handle so FS-2 stays quiet
         let hid = h;
-        drop(n);
         s.handles.free(hid).unwrap();
     }
     assert_eq!(v.check_invariants().unwrap_err().id, "INV-FS-4");

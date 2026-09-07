@@ -27,7 +27,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S3-2 | §3.1 | `index_number` monotonic, not slab-derived | `memvfs/node.rs`, `imp.rs take_index_number` | `index_numbers_are_strictly_increasing_and_never_reused` | test output | PASS |
 | R-S3-3 | §3.1 | Handle/cursor encoding `(gen<<32)|(idx+1)` | `vfs/ids.rs` | `encoding_matches_the_documented_formula` | test output | PASS |
 | R-S3-4 | §3.2 | `Vfs` trait + `OpCtx` + `VfsDiagnostics`; version = 1 | `vfs/mod.rs`, `vfs/invariants.rs` | `contract_version_is_one` | test output | PASS |
-| R-S3-5 | §3.3 | `fs-semantics.md` complete | `docs/protocols/fs-semantics.md` | conformance (S11) | pending S11 | TESTING |
+| R-S3-5 | §3.3 | `fs-semantics.md` complete | `docs/protocols/fs-semantics.md` | conformance suite, 11 modules | 206 tests green | PASS |
 | R-S3-6 | §3.3.7 | `VfsPath` rejects every listed form | `vfs/path.rs` | one test per rule, 15 tests | test output | PASS |
 | R-S3-7 | §3.4 | `resource-limits.md`; L1-L10 with config keys | `vfs/limits.rs` | `defaults_match_the_documented_table` | test output | IMPLEMENTING |
 | R-S3-8 | §3.5 | `vfs-invariants.md`; 22 invariants | `vfs/invariants.rs` | `the_invariant_list_matches_the_documented_count` | test output | PASS |
@@ -46,21 +46,21 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S6-1 | §6.1 | Default security descriptor held in Rust | | | | TODO |
 | R-S6-2 | §6.2 | `GetSecurityByName` buffer protocol | | | | TODO |
 | R-S6-3 | §6.3 | FILETIME conversion; allocation_size rounding | `client/core/src/time.rs`, `vfs/limits.rs` | `the_unix_epoch_converts_to_the_known_value`, `allocation_size_rounds_up_to_4096*` | test output | PASS |
-| R-S7-1 | §7.1 | Create options honoured | | | | TODO |
-| R-S7-2 | §7.2 | Cleanup/Close bookkeeping placement | | | | TODO |
-| R-S7-3 | §7.2 | INV-NS-6 path-traversal test (2-part) | | | | TODO |
-| R-S8-1 | §8 | read/write with overflow + EOF semantics | | | | TODO |
-| R-S8-2 | §8.1 | Full read/write matrix across 6 sizes | | | | TODO |
+| R-S7-1 | §7.1 | Create options honoured | `memvfs/imp.rs create/open` | `conformance/create_open.rs` | test output | PASS |
+| R-S7-2 | §7.2 | Cleanup/Close bookkeeping placement | `memvfs/imp.rs cleanup/close` | `conformance/lifecycle.rs` (12 tests) | test output | PASS |
+| R-S7-3 | §7.2 | INV-NS-6 path-traversal test (2-part) | `vfs/path.rs` | `conformance/naming.rs` + hosts-file snapshot | test output | PASS |
+| R-S8-1 | §8 | read/write with overflow + EOF semantics | `memvfs/imp.rs read/write` | `conformance/read_write.rs` | test output | PASS |
+| R-S8-2 | §8.1 | Full read/write matrix across 6 sizes | `memvfs/imp.rs` | `conformance/read_write.rs the_size_matrix` | test output | PASS |
 | R-S8-3 | §8.1 | read-after-write property test with seed | | | | TODO |
 | R-S9-1 | §9.1 | `ReadDirectory` adapter: buffer-full, NULL marker, resume | | | | TODO |
 | R-S9-2 | §9.2 | Explorer evidence, 10 steps | | | | TODO |
-| R-S10-1 | §10.1 | Rename/delete/metadata test rows | | | | TODO |
+| R-S10-1 | §10.1 | Rename/delete/metadata test rows | `memvfs/imp.rs` | `conformance/rename_delete.rs`, `metadata.rs` | test output | PASS |
 | R-S10-2 | §10.1 | Share access is WinFsp-owned | | | | TODO |
-| R-S11-1 | §11.1 | Conformance suite, 11 modules | | | | TODO |
+| R-S11-1 | §11.1 | Conformance suite, 11 modules | `client/core/src/conformance/` | `run_conformance_suite` | 206 tests green | PASS |
 | R-S11-2 | §11.2 | Suite runs with no WinFsp; separate CI job | | | | TODO |
-| R-S11-3 | §11.5 | `Capabilities` exactly one flag; both variants tested | | | | TODO |
-| R-S11-4 | §11.6 | Per-step invariant checking | | | | TODO |
-| R-S11-5 | §11.7 | Error-model assertions | | | | TODO |
+| R-S11-3 | §11.5 | `Capabilities` exactly one flag; both variants tested | `vfs/types.rs` | `capability_count_is_deliberate`, both runner tests | test output | PASS |
+| R-S11-4 | §11.6 | Per-step invariant checking | `conformance/util.rs step()` | every conformance test | test output | PASS |
+| R-S11-5 | §11.7 | Error-model assertions | `conformance/errors.rs` | `every_reachable_code_is_produced` | test output | PASS |
 | R-S12-1 | §12.1 | `request_id` on every boundary log line | | | | TODO |
 | R-S12-2 | §12.2 | Log level discipline | | | | TODO |
 | R-S12-3 | §12.3 | No file content in logs (asserted) | | | | TODO |
@@ -72,7 +72,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | | | | TODO |
 | R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | | | | TODO |
 | R-S14-2 | §14.2 | Property tests; seeds printed | | | | TODO |
-| R-S14-3 | §14.3 | Limit & limit+1 with state comparison | | | | TODO |
+| R-S14-3 | §14.3 | Limit & limit+1 with state comparison | `conformance/boundaries.rs` | L1-L8 tests | test output | PASS |
 | R-S15-1 | §15.1 | Clean shutdown in 5 states | | | | TODO |
 | R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | | | | TODO |
 | R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | | | | TODO |

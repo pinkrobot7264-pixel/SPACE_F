@@ -202,9 +202,24 @@ impl MemVfsState {
             Err(e) => return Err(e),
         };
         if !self.node(id)?.is_dir {
+            // A non-directory anywhere in the parent chain is
+            // ObjectPathNotFound, not NotADirectory.
+            //
+            // fs-semantics §3 does not name this case, so it is decided here
+            // and recorded there. Two reasons:
+            //
+            //  * It matches what Windows reports for `\file.txt\child` --
+            //    ERROR_PATH_NOT_FOUND, "could not find a part of the path" --
+            //    so applications see the status they already handle.
+            //  * It keeps the rule simple and depth-independent: *any* failure
+            //    to resolve the parent chain is ObjectPathNotFound, and
+            //    NotADirectory is reserved for FILE_DIRECTORY_FILE applied to
+            //    the target itself. Before this, `\a.txt\b\c` and `\a.txt\b`
+            //    reported different codes for the same situation, which is the
+            //    inconsistency the conformance suite caught.
             return Err(SpaceError::new(
-                ErrorCode::NotADirectory,
-                "parent is not a directory",
+                ErrorCode::ObjectPathNotFound,
+                "a component of the path is not a directory",
             ));
         }
         Ok(id)

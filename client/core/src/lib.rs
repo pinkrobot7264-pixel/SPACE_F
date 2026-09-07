@@ -19,6 +19,7 @@ use contracts::{
     Version, VersionId,
 };
 
+pub mod conformance;
 pub mod ffi;
 pub mod time;
 pub mod startup;

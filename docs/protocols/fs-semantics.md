@@ -99,12 +99,33 @@ timer.
 |---|---|
 | open nonexistent | `FileNotFound` |
 | open with missing parent directory | `ObjectPathNotFound` (distinct; Windows tools distinguish them) |
+| **a component of the parent chain exists but is a file** | **`ObjectPathNotFound`** — see the note below |
 | create existing | `FileExists` |
 | open directory with `FILE_NON_DIRECTORY_FILE` | `FileIsADirectory` |
 | open file with `FILE_DIRECTORY_FILE` | `NotADirectory` |
 | `FILE_DELETE_ON_CLOSE` | WinFsp sets `FspCleanupDelete` at cleanup; the VFS unlinks then |
 | same file opened twice | two `HandleId`s, one `NodeId`, `open_count == 2` |
 | share access | WinFsp-owned (ADR-0012); the core records `granted_access` only |
+
+### Note — a file in the middle of a path
+
+The Phase 1 manual's §3.3.3 table does not name the case where a path traverses
+*through* something that exists but is not a directory (`\a.txt\b`). It is
+decided here rather than left to the implementation:
+
+**Any failure to resolve the parent chain is `ObjectPathNotFound`.**
+`NotADirectory` is reserved for `FILE_DIRECTORY_FILE` applied to the target
+itself.
+
+Two reasons:
+
+- It matches what Windows reports for `\file.txt\child` —
+  `ERROR_PATH_NOT_FOUND`, *"could not find a part of the path"* — so
+  applications see the status they already handle.
+- It is depth-independent. The alternative made `\a.txt\b` report
+  `NotADirectory` while `\a.txt\b\c` reported `ObjectPathNotFound`, which is the
+  same situation reported two ways. The conformance suite caught exactly that
+  inconsistency on its first run.
 
 ---
 
