@@ -67,7 +67,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S12-4 | §12.4 | Four-column translation matrix | `ffi/ntstatus.rs` | `the_nine_phase_1_codes_map_to_the_manual_s_values` + live NTSTATUS | partial: Win32 column pending | TESTING |
 | R-S13-1 | §13.1 | Phase 1 fault set + 8 fault points | `faults/src/lib.rs`, `ffi/mod.rs apply_fault` | `ffi/fault_tests.rs` (11 tests) | 175 tests w/ feature | PASS |
 | R-S13-2 | §13.1 | `CorruptBytes` not armable | `faults::arm` | `corrupt_bytes_is_not_armable_in_phase_1` x2 | both profiles | PASS |
-| R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | | | | TODO |
+| R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | `apply_fault` Hang | `fault_tests.rs` + `scripts/fault-injection-test.ps1` | in-process PASS; Explorer-responsive pending human | TESTING |
 | R-S13-4 | §13.4 | Near-miss delay succeeds | `apply_fault` Delay | `a_near_miss_delay_still_succeeds` | test output | PASS |
 | R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | `apply_fault` | 6 fault-row tests | test output | PASS |
 | R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | | | | TODO |
@@ -78,8 +78,8 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | `docs/runbooks/stale-mount-recovery.md` | n/a (prose) | on disk | PASS |
 | R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | `mount-stress.txt`, os-safety OK | PASS |
 | R-S16-2 | §16.2 | 30-min I/O stress | | | | TODO |
-| R-S16-3 | §16.3 | Windows compatibility matrix | | | | TODO |
-| R-S16-4 | §16.4 | ProcMon write-confinement evidence | | | | TODO |
+| R-S16-3 | §16.3 | Windows compatibility matrix | `scripts/compatibility-matrix.ps1` | 4 scripted clients + 3 GUI rows for human | pending run | TESTING |
+| R-S16-4 | §16.4 | ProcMon write-confinement evidence | n/a (external) | `EXPLORER-CHECKLIST.md` §16.4 | HUMAN ACTION REQUIRED | BLOCKED |
 | R-S16-5 | §16.5 | 4-hour soak with thresholds | | | | TODO |
 | R-S17-1 | §17.1 | `collect-evidence.ps1` | `scripts/collect-evidence.ps1` | manual run | pending final gate | IMPLEMENTING |
 | R-S17-2 | §17.2–17.7 | Six exit gates satisfied | | | | TODO |
