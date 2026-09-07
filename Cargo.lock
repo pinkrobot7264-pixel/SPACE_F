@@ -1310,6 +1310,8 @@ name = "space-client-core"
 version = "0.0.1"
 dependencies = [
  "contracts",
+ "faults",
+ "parking_lot",
  "reqwest",
  "serde",
  "serde_json",

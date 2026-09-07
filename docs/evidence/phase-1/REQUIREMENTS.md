@@ -23,29 +23,29 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S2-7 | §2.5 | String/nullability boundary tests | | | | TODO |
 | R-S2-8 | §2.5 | Panic model tests pass debug AND release | | | | TODO |
 | R-S2-9 | §2.5 | Timeout → `STATUS_IO_TIMEOUT`; no `NetworkTimeout` in core | | | | TODO |
-| R-S3-1 | §3.1 | Identity model documented; 5 identifiers | | | | TODO |
-| R-S3-2 | §3.1 | `index_number` monotonic, not slab-derived | | | | TODO |
-| R-S3-3 | §3.1 | Handle/cursor encoding `(gen<<32)\|(idx+1)` | | | | TODO |
-| R-S3-4 | §3.2 | `Vfs` trait + `OpCtx` + `VfsDiagnostics`; version = 1 | | | | TODO |
-| R-S3-5 | §3.3 | `fs-semantics.md` complete | | | | TODO |
-| R-S3-6 | §3.3.7 | `VfsPath` rejects every listed form | | | | TODO |
-| R-S3-7 | §3.4 | `resource-limits.md`; L1–L10 with config keys | | | | TODO |
-| R-S3-8 | §3.5 | `vfs-invariants.md`; 21 invariants | | | | TODO |
-| R-S3-9 | §3.5 | Checker read-only, non-repairing, deterministic | | | | TODO |
-| R-S3-10 | §3.6 | `concurrency.md`; deadline-bounded lock acquisition | | | | TODO |
-| R-S3-11 | §3.7 | Checker proven to FIRE for each invariant class | | | | TODO |
+| R-S3-1 | §3.1 | Identity model documented; 5 identifiers | `docs/protocols/identity.md` | `vfs/ids.rs` tests | 202 tests green | PASS |
+| R-S3-2 | §3.1 | `index_number` monotonic, not slab-derived | `memvfs/node.rs`, `imp.rs take_index_number` | `index_numbers_are_strictly_increasing_and_never_reused` | test output | PASS |
+| R-S3-3 | §3.1 | Handle/cursor encoding `(gen<<32)|(idx+1)` | `vfs/ids.rs` | `encoding_matches_the_documented_formula` | test output | PASS |
+| R-S3-4 | §3.2 | `Vfs` trait + `OpCtx` + `VfsDiagnostics`; version = 1 | `vfs/mod.rs`, `vfs/invariants.rs` | `contract_version_is_one` | test output | PASS |
+| R-S3-5 | §3.3 | `fs-semantics.md` complete | `docs/protocols/fs-semantics.md` | conformance (S11) | pending S11 | TESTING |
+| R-S3-6 | §3.3.7 | `VfsPath` rejects every listed form | `vfs/path.rs` | one test per rule, 15 tests | test output | PASS |
+| R-S3-7 | §3.4 | `resource-limits.md`; L1-L10 with config keys | `vfs/limits.rs` | `defaults_match_the_documented_table` | test output | IMPLEMENTING |
+| R-S3-8 | §3.5 | `vfs-invariants.md`; 22 invariants | `vfs/invariants.rs` | `the_invariant_list_matches_the_documented_count` | test output | PASS |
+| R-S3-9 | §3.5 | Checker read-only, non-repairing, deterministic | `memvfs/check.rs` | `checker_is_read_only_*` (3 tests, snapshot cmp) | test output | PASS |
+| R-S3-10 | §3.6 | `concurrency.md`; deadline-bounded lock | `memvfs/imp.rs state()` | `lock_acquisition_is_deadline_bounded` | test output | PASS |
+| R-S3-11 | §3.7 | Checker proven to FIRE for each invariant class | `memvfs/check.rs` | 12 `fires_inv_*` tests | test output | PASS |
 | R-S4-1 | §4.1 | `host.cpp` mount with deterministic volume params | | | | TODO |
 | R-S4-2 | §4.1 | Unmount ordering: stop → remove → delete | | | | TODO |
 | R-S4-3 | §4.2 | Minimal callback table (`GetVolumeInfo`) | | | | TODO |
 | R-S4-4 | §4.3 | `client/main` wiring; main-thread-only shutdown | | | | TODO |
 | R-S4-5 | §4.4 | `S:` appears in Explorer; os-safety clean | | | | TODO |
-| R-S5-1 | §5.1 | `MemNode` / `MemVfsState` / `MemVfs` model | | | | TODO |
-| R-S5-2 | §5.2 | Generational handle + cursor tables; L7/L8 | | | | TODO |
-| R-S5-3 | §5.3 | `check_invariants()` implemented | | | | TODO |
-| R-S5-4 | §5.4 | Handle-table test matrix incl. generation wraparound | | | | TODO |
+| R-S5-1 | §5.1 | `MemNode` / `MemVfsState` / `MemVfs` model | `memvfs/node.rs`, `memvfs/imp.rs` | 101 core tests | test output | PASS |
+| R-S5-2 | §5.2 | Generational handle + cursor tables; L7/L8 | `memvfs/table.rs` | 13 table tests | test output | PASS |
+| R-S5-3 | §5.3 | `check_invariants()` implemented | `memvfs/check.rs` | 12 firing + 3 read-only tests | test output | PASS |
+| R-S5-4 | §5.4 | Handle-table matrix incl. generation wraparound | `memvfs/table.rs` | `generation_wraparound_skips_zero` + residual test | test output | PASS |
 | R-S6-1 | §6.1 | Default security descriptor held in Rust | | | | TODO |
 | R-S6-2 | §6.2 | `GetSecurityByName` buffer protocol | | | | TODO |
-| R-S6-3 | §6.3 | FILETIME conversion; allocation_size rounding | | | | TODO |
+| R-S6-3 | §6.3 | FILETIME conversion; allocation_size rounding | `client/core/src/time.rs`, `vfs/limits.rs` | `the_unix_epoch_converts_to_the_known_value`, `allocation_size_rounds_up_to_4096*` | test output | PASS |
 | R-S7-1 | §7.1 | Create options honoured | | | | TODO |
 | R-S7-2 | §7.2 | Cleanup/Close bookkeeping placement | | | | TODO |
 | R-S7-3 | §7.2 | INV-NS-6 path-traversal test (2-part) | | | | TODO |

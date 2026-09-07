@@ -68,9 +68,20 @@ never a panic, never a dereference.
 
 Generations are `u32` and advance on every free. At `u32::MAX` they wrap.
 **Generation 0 is skipped on wrap**, so a wrapped slot cannot collide with the
-initial state of a never-allocated slot. The case is contrived; it is
-implemented and tested anyway, because discovering it later means discovering it
-through a corruption report.
+initial state of a never-allocated slot, and a zeroed or forged identifier can
+never resolve. The case is contrived; it is implemented and tested anyway,
+because discovering it later means discovering it through a corruption report.
+
+**Residual, stated rather than glossed:** the encoding above gives 32 generation
+bits, so an identifier held across `2^32` frees of *the same slot* will
+eventually collide with a live one. Skipping generation 0 removes the collision
+with a never-allocated slot; it cannot remove this one, and widening the counter
+would change the contract encoding. Reaching it requires four billion
+open/close cycles on one slot while holding a stale handle across all of them —
+a different order of program error, and not reachable by a caller within a
+bounded process lifetime. The behaviour is pinned by
+`wraparound_aliasing_residual_is_documented_not_silently_absent` so that "no
+aliasing" is never read as a stronger claim than the mechanism supports.
 
 ### Stale resolution is always an error, never an aliasing
 
