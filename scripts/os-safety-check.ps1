@@ -3,7 +3,10 @@
 # Run after every stress test in Sessions 13-16. Its output is gate evidence.
 # Exit code 0 = safe, 1 = at least one check failed.
 
-param([datetime]$Since = (Get-Date).AddHours(-1))
+param(
+    [datetime]$Since = (Get-Date).AddHours(-1),
+    [string]$Drive = "S"
+)
 
 $fail = 0
 Write-Host "=== OS safety check since $Since ===" -ForegroundColor Cyan
@@ -28,16 +31,26 @@ if ($sys) {
   $sys | Select-Object TimeCreated, Id, ProviderName, Message -First 10 | Format-List
 }
 
+# Deviation from the manual's listing, deliberate and load-bearing: the listing
+# greps lsvol output for "SPACE", but fsptool prints the drive letter and the
+# device path -- e.g. "S:  \Device\Volume{e3a5ead4-...}" -- and never the
+# filesystem name. Grepping for "SPACE" therefore matches nothing and the check
+# passes unconditionally, which is worse than not having it: a stale volume is
+# exactly what this gate exists to catch. Match the mount point instead.
+$mountPoint = "${Drive}:"
 $vols = & "C:\Program Files (x86)\WinFsp\bin\fsptool-x64.exe" lsvol 2>&1 | Out-String
-if ($vols -match "SPACE") { Write-Host "FAIL  stale SPACE volume:`n$vols" -ForegroundColor Red; $fail++ }
-else                      { Write-Host "PASS  no stale SPACE volume" -ForegroundColor Green }
+if ($vols -match [regex]::Escape($mountPoint)) {
+  Write-Host "FAIL  stale $mountPoint volume still registered with WinFsp:`n$vols" -ForegroundColor Red; $fail++
+} else {
+  Write-Host "PASS  no stale $mountPoint volume" -ForegroundColor Green
+}
 
 if (Get-Process space-client -ErrorAction SilentlyContinue) {
   Write-Host "FAIL  space-client still running" -ForegroundColor Red; $fail++
 } else { Write-Host "PASS  no orphaned client process" -ForegroundColor Green }
 
-if (Test-Path "S:\") { Write-Host "FAIL  S: still present" -ForegroundColor Red; $fail++ }
-else                 { Write-Host "PASS  S: released" -ForegroundColor Green }
+if (Test-Path "${Drive}:\") { Write-Host "FAIL  ${Drive}: still present" -ForegroundColor Red; $fail++ }
+else                 { Write-Host "PASS  ${Drive}: released" -ForegroundColor Green }
 
 if ($fail -gt 0) { Write-Host "`n$fail OS-safety check(s) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "`nOS safety OK" -ForegroundColor Green

@@ -12,13 +12,16 @@
 
 use contracts::{ErrorCode, RequestId, SpaceError};
 
+pub mod config_map;
 pub mod ids;
 pub mod invariants;
 pub mod limits;
 pub mod memvfs;
 pub mod path;
+pub mod properties;
 pub mod types;
 
+pub use config_map::VfsSectionExt;
 pub use ids::{CursorId, HandleId};
 pub use invariants::{InvariantViolation, VfsDiagnostics};
 pub use limits::{Limits, PathLimits};

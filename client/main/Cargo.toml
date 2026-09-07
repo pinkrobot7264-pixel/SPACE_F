@@ -8,6 +8,12 @@ rust-version.workspace = true
 name = "space-client"
 path = "src/main.rs"
 
+[build-dependencies]
+cc.workspace = true
+
 [dependencies]
 space-client-core.workspace = true
+space-config.workspace = true
+contracts.workspace = true
+tracing.workspace = true
 tokio = { workspace = true }

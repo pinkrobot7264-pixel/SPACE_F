@@ -32,6 +32,10 @@ pub struct Config {
     pub scheduler: SchedulerConfig,
     pub cloud: CloudConfig,
     pub logging: LoggingConfig,
+    /// Phase 1 VFS bounds (section 3.4). Defaulted in full so a Phase 0 config
+    /// file remains valid; a test drives a boundary by setting one key.
+    #[serde(default)]
+    pub vfs: VfsSection,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -41,6 +45,15 @@ pub struct ClientConfig {
     pub callback_timeout_ms: u64,
     pub shutdown_deadline_ms: u64,
     pub mount_drive_letter: String,
+    /// L10 (ADR-0010): the WinFsp dispatcher thread count is the concurrency
+    /// ceiling for every backing store, so it is a configured bound and not a
+    /// default. 0 means "let WinFsp choose".
+    #[serde(default = "default_dispatcher_threads")]
+    pub dispatcher_threads: u32,
+}
+
+fn default_dispatcher_threads() -> u32 {
+    4
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -300,6 +313,14 @@ impl Config {
         )?;
         one_of("logging.format", &self.logging.format, &["json"])?;
 
+        range(
+            "client.dispatcher_threads",
+            self.client.dispatcher_threads as u64,
+            0,
+            64,
+        )?;
+        self.vfs.validate()?;
+
         self.check_paths_writable()?;
         self.check_release_only_rules()?;
         Ok(())
@@ -556,5 +577,167 @@ mod tests {
         let _ = Config::from_str_validated(&good(tmp.path())).unwrap();
         let mut leftovers = std::fs::read_dir(tmp.path()).unwrap();
         assert!(!leftovers.any(|e| e.unwrap().file_name() == ".space-write-probe"));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1: VFS bounds (manual section 3.4)
+// ---------------------------------------------------------------------------
+
+/// Every limit in `docs/protocols/resource-limits.md` gets a config key.
+///
+/// All fields are defaulted to the documented values, so a Phase 0 config file
+/// stays valid and a test drives one boundary by setting one key.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VfsSection {
+    /// L5 -- total bytes the filesystem may hold.
+    #[serde(default = "d_max_bytes")]
+    pub max_bytes: u64,
+    /// L7 -- simultaneously open handles.
+    #[serde(default = "d_max_open_handles")]
+    pub max_open_handles: usize,
+    /// L8 -- simultaneously open cursors.
+    #[serde(default = "d_max_open_cursors")]
+    pub max_open_cursors: usize,
+    /// L6 -- entries per directory.
+    #[serde(default = "d_max_dir_entries")]
+    pub max_dir_entries: usize,
+    /// L4 -- bytes in a single read or write.
+    #[serde(default = "d_max_io_bytes")]
+    pub max_io_bytes: usize,
+    /// L1 -- path length in characters.
+    #[serde(default = "d_max_path_chars")]
+    pub max_path_chars: usize,
+    /// L2 -- component length in characters.
+    #[serde(default = "d_max_component_chars")]
+    pub max_component_chars: usize,
+    /// L3 -- path depth in components.
+    #[serde(default = "d_max_path_depth")]
+    pub max_path_depth: usize,
+    /// The one Phase 1 capability (manual section 11.5). `false` is Phase 1's
+    /// ASCII folding; `true` is the Phase 2 target. Both behaviours are
+    /// specified in `fs-semantics.md` and both are tested.
+    #[serde(default)]
+    pub unicode_case_folding: bool,
+}
+
+fn d_max_bytes() -> u64 {
+    1 << 30
+}
+fn d_max_open_handles() -> usize {
+    65_536
+}
+fn d_max_open_cursors() -> usize {
+    256
+}
+fn d_max_dir_entries() -> usize {
+    65_536
+}
+fn d_max_io_bytes() -> usize {
+    16 * 1024 * 1024
+}
+fn d_max_path_chars() -> usize {
+    32_767
+}
+fn d_max_component_chars() -> usize {
+    255
+}
+fn d_max_path_depth() -> usize {
+    512
+}
+
+impl Default for VfsSection {
+    fn default() -> Self {
+        VfsSection {
+            max_bytes: d_max_bytes(),
+            max_open_handles: d_max_open_handles(),
+            max_open_cursors: d_max_open_cursors(),
+            max_dir_entries: d_max_dir_entries(),
+            max_io_bytes: d_max_io_bytes(),
+            max_path_chars: d_max_path_chars(),
+            max_component_chars: d_max_component_chars(),
+            max_path_depth: d_max_path_depth(),
+            unicode_case_folding: false,
+        }
+    }
+}
+
+impl VfsSection {
+    fn validate(&self) -> Result<(), SpaceError> {
+        // A config must not be able to set a limit to a value that would break
+        // an invariant -- max_io_bytes = 0 would make every read fail L4, and
+        // max_open_handles = 0 would make the filesystem unmountable.
+        range("vfs.max_bytes", self.max_bytes, 1 << 20, u64::MAX)?;
+        range(
+            "vfs.max_open_handles",
+            self.max_open_handles as u64,
+            1,
+            1 << 24,
+        )?;
+        range(
+            "vfs.max_open_cursors",
+            self.max_open_cursors as u64,
+            1,
+            1 << 20,
+        )?;
+        range(
+            "vfs.max_dir_entries",
+            self.max_dir_entries as u64,
+            1,
+            1 << 24,
+        )?;
+        range(
+            "vfs.max_io_bytes",
+            self.max_io_bytes as u64,
+            4096,
+            1 << 30,
+        )?;
+        range(
+            "vfs.max_path_chars",
+            self.max_path_chars as u64,
+            16,
+            32_767,
+        )?;
+        range(
+            "vfs.max_component_chars",
+            self.max_component_chars as u64,
+            8,
+            255,
+        )?;
+        range("vfs.max_path_depth", self.max_path_depth as u64, 2, 4096)?;
+        if self.max_component_chars > self.max_path_chars {
+            return Err(config_invalid(
+                "vfs.max_component_chars must not exceed vfs.max_path_chars",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl VfsSection {
+    /// The five limits the conformance suite takes (manual section 11.5).
+    ///
+    /// Returned as a plain tuple-free struct in the core rather than here:
+    /// `space-config` must not depend on `space-client-core` (the dependency
+    /// runs the other way), so the core does the mapping and this method
+    /// exposes the raw values.
+    pub fn as_tuple(&self) -> (u64, usize, usize, usize, usize) {
+        (
+            self.max_bytes,
+            self.max_open_handles,
+            self.max_open_cursors,
+            self.max_dir_entries,
+            self.max_io_bytes,
+        )
+    }
+
+    /// The three path bounds (L1, L2, L3).
+    pub fn path_tuple(&self) -> (usize, usize, usize) {
+        (
+            self.max_path_chars,
+            self.max_component_chars,
+            self.max_path_depth,
+        )
     }
 }

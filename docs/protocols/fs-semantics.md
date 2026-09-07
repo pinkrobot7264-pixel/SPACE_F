@@ -44,6 +44,40 @@ Two consequences that are easy to get wrong:
 (§4.1). Determinism is worth more than the optimisation here. The bookkeeping
 rules above hold either way, which is the point of splitting them.
 
+### `UmFileContextIsUserContext2 = 1` is required, not optional
+
+The rule *"one `Create`/`Open` → one file object → exactly one `FileContext` →
+one `HandleId`"* is **not WinFsp's default behaviour**, and the manual's §4.1
+volume-parameter listing does not include the flag that makes it true.
+
+With `UmFileContextIsUserContext2` clear, the user-mode `FileContext` is the
+FSD's `UserContext`, which is per **file** (the `FsContext` / FileNode) and is
+shared by every file object open on that file. The consequences are exactly what
+you would predict once stated, and were observed:
+
+- opening one directory twice produces two `Open` callbacks, so the filesystem
+  mints two `HandleId`s;
+- every subsequent callback carries only the **first** context;
+- the first `Cleanup`/`Close` frees that handle while the second file object is
+  still using it;
+- the second file object's next operation fails with `STATUS_INVALID_HANDLE`.
+
+Observed symptom: PowerShell's `Get-ChildItem` — which opens the directory
+twice — failed with *"The handle is invalid"* on **every** non-empty directory,
+at any size, while `cmd`'s `dir`, .NET's `Directory.GetFiles` and `ls`, which
+open once, all succeeded. Recursive delete failed for the same reason.
+
+Setting the flag makes the `FileContext` per file object, which is what this
+document describes.
+
+The alternative — WinFsp's own `memfs` model, where the context is a
+reference-counted `FileNode` shared across file objects — is incompatible with
+ADR-0008's opaque generational handles, and would move lifetime management back
+into the adapter. The flag is the right fix.
+
+**Phase 2 obligation:** this flag is part of the frozen adapter contract. Turning
+it off silently re-breaks the handle model.
+
 ### `CanDelete` versus `SetDelete`
 
 WinFsp offers both; when `SetDelete` is provided it supersedes `CanDelete`.

@@ -9,7 +9,10 @@
 //!  6. idle
 //!  7. on signal: clean shutdown within a bounded deadline, exit 0
 //!
-//! No WinFsp. No mount. No drive letter.
+//! Phase 1 adds the mount: `client/main` calls `space_core_start` and then
+//! `space_adapter_mount` after `prepare` returns (manual section 4.3). This
+//! module still owns only args, config and logging -- the steps that must
+//! happen before any WinFsp call.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -85,7 +88,9 @@ pub fn prepare(args: &Args, log_sink: LogSink<'_>) -> Startup {
         chunk_size_bytes = cfg.chunking.chunk_size_bytes,
         cloud_base_url = %cfg.cloud.base_url,
         mount_drive_letter = %cfg.client.mount_drive_letter,
-        msg = "client starting (no mount in Phase 0)"
+        dispatcher_threads = cfg.client.dispatcher_threads,
+        callback_timeout_ms = cfg.client.callback_timeout_ms,
+        msg = "client starting"
     );
 
     Startup::Ready(Box::new(cfg))

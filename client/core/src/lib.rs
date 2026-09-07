@@ -8,7 +8,9 @@
 //! carries an `X-Request-Id` on every call and turns every non-2xx response back
 //! into a [`SpaceError`] with the original code.
 
-#![forbid(unsafe_code)]
+// The FFI module needs `unsafe`; every other module is still denied it, and
+// each `unsafe` block at the boundary carries a SAFETY note (section 2.1).
+#![deny(unsafe_code)]
 
 use contracts::api::{
     ChunkResponse, CreateFileRequest, CreateVersionRequest, ErrorResponse, FileResponse,
