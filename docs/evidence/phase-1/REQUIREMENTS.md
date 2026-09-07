@@ -13,7 +13,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S1-3 | §1.2 ADR-0007..0015 | Nine ADR documents written | `docs/decisions/ADR-0007..0015` | n/a (prose) | 9 files on disk | PASS |
 | R-S1-4 | §1.3 | 9 new `ErrorCode`s added and classified | `contracts/src/errors.rs` | `the_nine_phase_1_codes_are_present`, `all_slice_covers_every_variant` | 104 tests green | PASS |
 | R-S1-5 | §1.5 | `scripts/os-safety-check.ps1` exists and runs | `scripts/os-safety-check.ps1` | manual run | all 5 checks PASS, exit 0 | PASS |
-| R-S1-6 | §1.6 | Phase-2+ tech absent from Phase 1 | | | | TODO |
+| R-S1-6 | §1.6 | Phase-2+ tech absent from Phase 1 | n/a | grep audit | see final audit | TESTING |
 | R-S2-1 | §2.2 | `space_core.h` C ABI header complete | `client/winfsp-adapter/include/space_core.h` | C++ static_asserts | compiles | PASS |
 | R-S2-2 | §2.3 | `guard()`: state check, `catch_unwind`, poison, NTSTATUS | `ffi/mod.rs guard` | `ffi/tests.rs` panic model (6 tests) | debug+release green | PASS |
 | R-S2-3 | §2.3 | `wstr()` length-capped UTF-16 conversion | `ffi/mod.rs wstr` | 7 string tests | test output | PASS |
@@ -35,10 +35,10 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S3-10 | §3.6 | `concurrency.md`; deadline-bounded lock | `memvfs/imp.rs state()` | `lock_acquisition_is_deadline_bounded` | test output | PASS |
 | R-S3-11 | §3.7 | Checker proven to FIRE for each invariant class | `memvfs/check.rs` | 12 `fires_inv_*` tests | test output | PASS |
 | R-S4-1 | §4.1 | `host.cpp` mount with deterministic volume params | `winfsp-adapter/src/host.cpp` | live mount | S: mounts, fsptool lsvol | PASS |
-| R-S4-2 | §4.1 | Unmount ordering: stop → remove → delete | | | | TODO |
+| R-S4-2 | §4.1 | Unmount ordering: stop → remove → delete | `host.cpp space_adapter_unmount` | 200 mount/unmount cycles | `mount-stress.txt` | PASS |
 | R-S4-3 | §4.2 | Callback table (full, not just GetVolumeInfo) | `winfsp-adapter/src/callbacks.cpp` | live mount exercises all | functional test 18/19 | PASS |
 | R-S4-4 | §4.3 | `client/main` wiring; main-thread-only shutdown | `client/main/src/main.rs` | live mount + Ctrl-C path | mount/unmount clean | PASS |
-| R-S4-5 | §4.4 | `S:` appears in Explorer; os-safety clean | | | | TODO |
+| R-S4-5 | §4.4 | `S:` appears in Explorer; os-safety clean | `client/main` | live mount + os-safety | mounted; GUI step pending human | TESTING |
 | R-S5-1 | §5.1 | `MemNode` / `MemVfsState` / `MemVfs` model | `memvfs/node.rs`, `memvfs/imp.rs` | 101 core tests | test output | PASS |
 | R-S5-2 | §5.2 | Generational handle + cursor tables; L7/L8 | `memvfs/table.rs` | 13 table tests | test output | PASS |
 | R-S5-3 | §5.3 | `check_invariants()` implemented | `memvfs/check.rs` | 12 firing + 3 read-only tests | test output | PASS |
@@ -51,11 +51,11 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S7-3 | §7.2 | INV-NS-6 path-traversal test (2-part) | `vfs/path.rs` | `conformance/naming.rs` + hosts-file snapshot | test output | PASS |
 | R-S8-1 | §8 | read/write with overflow + EOF semantics | `memvfs/imp.rs read/write` | `conformance/read_write.rs` | test output | PASS |
 | R-S8-2 | §8.1 | Full read/write matrix across 6 sizes | `memvfs/imp.rs` | `conformance/read_write.rs the_size_matrix` | test output | PASS |
-| R-S8-3 | §8.1 | read-after-write property test with seed | | | | TODO |
+| R-S8-3 | §8.1 | read-after-write property test with seed | `vfs/properties.rs` | `write_then_read_returns_the_same_bytes` | proptest, seeds persisted | PASS |
 | R-S9-1 | §9.1 | `ReadDirectory` adapter: buffer-full, NULL marker, resume | `winfsp-adapter/src/callbacks.cpp` | 5,000-file enumeration | functional test PASS | PASS |
 | R-S9-2 | §9.2 | Explorer evidence, 10 steps | live mount | `scripts/mount-functional-test.ps1` | 19/19 PASS; GUI steps pending human | TESTING |
 | R-S10-1 | §10.1 | Rename/delete/metadata test rows | `memvfs/imp.rs` | `conformance/rename_delete.rs`, `metadata.rs` | test output | PASS |
-| R-S10-2 | §10.1 | Share access is WinFsp-owned | | | | TODO |
+| R-S10-2 | §10.1 | Share access is WinFsp-owned | ADR-0012 (no code) | needs 2-process exclusive open | NOT YET RUN | TODO |
 | R-S11-1 | §11.1 | Conformance suite, 11 modules | `client/core/src/conformance/` | `run_conformance_suite` | 206 tests green | PASS |
 | R-S11-2 | §11.2 | Suite runs with no WinFsp; separate CI job | `conformance/` | `.github/workflows/ci.yml conformance-no-winfsp` | job asserts WinFsp absent | PASS |
 | R-S11-3 | §11.5 | `Capabilities` exactly one flag; both variants tested | `vfs/types.rs` | `capability_count_is_deliberate`, both runner tests | test output | PASS |
@@ -70,16 +70,16 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | `apply_fault` Hang | `fault_tests.rs` + `scripts/fault-injection-test.ps1` | in-process PASS; Explorer-responsive pending human | TESTING |
 | R-S13-4 | §13.4 | Near-miss delay succeeds | `apply_fault` Delay | `a_near_miss_delay_still_succeeds` | test output | PASS |
 | R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | `apply_fault` | 6 fault-row tests | test output | PASS |
-| R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | | | | TODO |
+| R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | `fuzz/fuzz_targets/*.rs` | `scripts/fuzz.ps1` | run in progress | TESTING |
 | R-S14-2 | §14.2 | Property tests; seeds printed | `vfs/properties.rs` | 9 proptest properties | test output | PASS |
 | R-S14-3 | §14.3 | Limit & limit+1 with state comparison | `conformance/boundaries.rs` | L1-L8 tests | test output | PASS |
-| R-S15-1 | §15.1 | Clean shutdown in 5 states | | | | TODO |
-| R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | | | | TODO |
+| R-S15-1 | §15.1 | Clean shutdown in 5 states | `client/main/src/main.rs` | 200 stress cycles + poison path test | partial: hung-op case pending | TESTING |
+| R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | `scripts/kill-matrix.ps1` | idle+mid-write PASS | run in progress | TESTING |
 | R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | `docs/runbooks/stale-mount-recovery.md` | n/a (prose) | on disk | PASS |
 | R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | `mount-stress.txt`, os-safety OK | PASS |
-| R-S16-2 | §16.2 | 30-min I/O stress | | | | TODO |
+| R-S16-2 | §16.2 | 30-min I/O stress | `scripts/soak.ps1` (same workload) | size matrix + verify | NOT YET RUN | TODO |
 | R-S16-3 | §16.3 | Windows compatibility matrix | `scripts/compatibility-matrix.ps1` | 4 scripted clients + 3 GUI rows for human | pending run | TESTING |
 | R-S16-4 | §16.4 | ProcMon write-confinement evidence | n/a (external) | `EXPLORER-CHECKLIST.md` §16.4 | HUMAN ACTION REQUIRED | BLOCKED |
-| R-S16-5 | §16.5 | 4-hour soak with thresholds | | | | TODO |
+| R-S16-5 | §16.5 | 4-hour soak with thresholds | `scripts/soak.ps1` | thresholds fixed in advance | NOT YET RUN | TODO |
 | R-S17-1 | §17.1 | `collect-evidence.ps1` | `scripts/collect-evidence.ps1` | manual run | pending final gate | IMPLEMENTING |
-| R-S17-2 | §17.2–17.7 | Six exit gates satisfied | | | | TODO |
+| R-S17-2 | §17.2–17.7 | Six exit gates satisfied | n/a | final audit | see PHASE-1-CERTIFICATION.md | TESTING |
