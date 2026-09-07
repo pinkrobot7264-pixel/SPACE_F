@@ -962,20 +962,36 @@ impl Vfs for MemVfs {
         }
 
         // The marker is a resume point, not a filter: yield entries strictly
-        // after it in the order above. Getting this wrong is what silently
-        // truncates large directories (INV-DIR-2).
+        // after it **in the total order**, which is not the same as "find this
+        // name and start after it".
+        //
+        // Resuming by membership silently truncates any enumeration that
+        // deletes as it goes -- `Remove-Item -Recurse`, `rmdir /s`, and every
+        // other delete-while-enumerating client. Those clients enumerate a
+        // batch, delete it, then resume from the last name they saw, which by
+        // then no longer exists. A membership search finds nothing, returns
+        // "end of directory", and the caller concludes the directory is empty
+        // while ~97% of it remains. Observed exactly that way: a 500-file
+        // directory lost 35 files per pass and then failed with
+        // STATUS_DIRECTORY_NOT_EMPTY.
+        //
+        // Ordering by key makes a deleted marker harmless: the enumeration
+        // resumes at the first surviving entry that sorts after it.
+        //
+        // The key is `(rank, folded_name)` rather than the folded name alone,
+        // because "." and ".." are positioned by convention rather than by
+        // sort order -- a child named "!readme" folds below "." and would
+        // otherwise be placed before the dot entries.
         let start = match marker {
             None => 0,
             Some(m) => {
-                let mkey = s.fold(m);
-                let mut idx = entries.len();
-                for (i, (name, _)) in entries.iter().enumerate() {
-                    if s.fold(name) == mkey {
-                        idx = i + 1;
-                        break;
-                    }
-                }
-                idx
+                let mkey = order_key(m, s.cfg.capabilities);
+                // `entries` is built in exactly this order, so the predicate is
+                // monotonic and partition_point is the first index past the
+                // marker -- O(log N) rather than the O(N) scan it replaces.
+                entries.partition_point(|(name, _)| {
+                    order_key(name, s.cfg.capabilities) <= mkey
+                })
             }
         };
 
@@ -1004,5 +1020,23 @@ impl Vfs for MemVfs {
 
     fn parse_path(&self, s: &str) -> Result<VfsPath, SpaceError> {
         VfsPath::parse_with(s, &self.cfg.path_limits)
+    }
+}
+
+/// The total order of a directory enumeration (fs-semantics §8).
+///
+/// `.` then `..` then children in ascending folded-name order. Returned as a
+/// sortable key so that "strictly after the marker" is decided by comparison
+/// rather than by looking the marker up -- which is what keeps a
+/// delete-while-enumerating client from silently truncating (INV-DIR-2).
+///
+/// The rank is needed because the dot entries are placed by convention, not by
+/// sort order: a child named `!readme` folds below `.` and would otherwise be
+/// ordered ahead of them.
+fn order_key(name: &str, caps: Capabilities) -> (u8, FoldedName) {
+    match name {
+        "." => (0, FoldedName::new("", caps)),
+        ".." => (1, FoldedName::new("", caps)),
+        _ => (2, FoldedName::new(name, caps)),
     }
 }

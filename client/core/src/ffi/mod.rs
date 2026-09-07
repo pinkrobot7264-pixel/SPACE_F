@@ -45,6 +45,8 @@ pub mod types;
 #[cfg(test)]
 pub mod test_support;
 #[cfg(test)]
+mod log_tests;
+#[cfg(test)]
 mod tests;
 
 use lifecycle::{accepting_work, enter_poisoning};

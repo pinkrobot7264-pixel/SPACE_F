@@ -495,7 +495,7 @@ fn poisoning_from_a_dispatcher_thread_does_not_deadlock() {
     start_test_core();
 
     let started = std::time::Instant::now();
-    let t = std::thread::spawn(|| guarded_panic());
+    let t = std::thread::spawn(guarded_panic);
     let status = t.join().expect("the poisoning thread must not itself panic");
     let elapsed = started.elapsed();
 

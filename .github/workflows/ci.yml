@@ -3,6 +3,47 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  # Phase 1 §11.2: the conformance suite runs with **no WinFsp installed and no
+  # mount**. Kept as a separate job on a runner where WinFsp is deliberately
+  # absent, so the property is enforced rather than asserted.
+  #
+  # If this job ever needs WinFsp, something leaked from the adapter into the
+  # core -- which is exactly the regression it exists to catch. It also means a
+  # contract failure points at logic rather than at a drive letter, Explorer or
+  # the kernel.
+  conformance-no-winfsp:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Assert WinFsp is NOT installed
+        shell: pwsh
+        run: |
+          # The whole point of this job. If a future runner image ships WinFsp,
+          # fail loudly rather than silently proving nothing.
+          foreach ($p in @(
+            "C:\Program Files (x86)\WinFsp\inc\winfsp\winfsp.h",
+            "C:\Program Files (x86)\WinFsp\bin\winfsp-x64.dll")) {
+            if (Test-Path $p) {
+              throw "WinFsp is present at $p; this job must run without it (manual 11.2)"
+            }
+          }
+          Write-Host "WinFsp absent, as required"
+
+      # Only the core crate: client/main links the C++ adapter and therefore
+      # needs the WinFsp SDK. The core, the VFS contract and the whole
+      # conformance suite must not.
+      - name: Build the core without WinFsp
+        run: cargo build -p space-client-core --all-targets
+
+      - name: Conformance suite, no mount
+        run: cargo test -p space-client-core
+
+      - name: Conformance suite in release (ADR-0013 panic model)
+        run: cargo test -p space-client-core --release
+
   windows:
     runs-on: windows-latest
     steps:

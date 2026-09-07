@@ -26,6 +26,112 @@ pub fn all<V: Vfs + VfsDiagnostics>(vfs: &V, caps: Capabilities, limits: Limits)
     a_stale_cursor_is_a_controlled_error(&c);
     dot_entries_carry_the_right_info(&c);
     an_empty_directory_yields_only_dot_entries(&c);
+    resume_from_a_marker_that_no_longer_exists(&c);
+    delete_while_enumerating_visits_every_entry(&c);
+}
+
+fn resume_from_a_marker_that_no_longer_exists<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
+    step(c.vfs, "resume from a deleted marker", || {
+        // Regression: the marker is a position in a total order, not a lookup
+        // key. Resuming by membership returned "end of directory" whenever the
+        // marker had been deleted between calls, which silently truncated every
+        // delete-while-enumerating client.
+        let d = c.create_dir("gone-marker");
+        c.close(d);
+        for n in ["a", "b", "c", "d", "e"] {
+            c.file_with(&format!("gone-marker\\{n}"), b"x");
+        }
+        let h = c.open_dir("gone-marker").unwrap();
+
+        // Delete the entry we are about to resume from.
+        c.delete("gone-marker\\c");
+
+        // Resuming after the now-absent "c" must still yield "d" and "e" --
+        // the entries that sort after it -- not nothing.
+        let after = c.list_handle(h, Some("c"));
+        assert_eq!(
+            after,
+            vec!["d", "e"],
+            "a deleted marker stranded the enumeration"
+        );
+
+        // The same holds for a marker that never existed at all.
+        let after_ghost = c.list_handle(h, Some("bb"));
+        assert_eq!(after_ghost, vec!["d", "e"]);
+
+        // ...and for a marker sorting before everything.
+        let after_low = c.list_handle(h, Some("!"));
+        assert_eq!(after_low, vec!["a", "b", "d", "e"]);
+
+        c.close(h);
+    });
+}
+
+fn delete_while_enumerating_visits_every_entry<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
+    step(c.vfs, "delete while enumerating", || {
+        // The exact shape of `Remove-Item -Recurse` / `rmdir /s`: enumerate a
+        // batch, delete it, resume from the last name seen -- which no longer
+        // exists. This drained only ~35 of 500 files before the fix, and the
+        // directory then refused to be removed as non-empty.
+        let d = c.create_dir("del-while-enum");
+        c.close(d);
+        const N: usize = 40;
+        for i in 0..N {
+            c.file_with(&format!("del-while-enum\\f{i:03}"), b"x");
+        }
+
+        let h = c.open_dir("del-while-enum").unwrap();
+        let mut deleted = 0usize;
+        let mut marker: Option<String> = None;
+        let mut rounds = 0usize;
+
+        loop {
+            rounds += 1;
+            assert!(rounds < N + 10, "enumeration did not terminate");
+
+            let cur = c.vfs.dir_open(&cx(), h, None, marker.as_deref()).unwrap();
+            let mut batch = Vec::new();
+            // A small buffer, so the resume path is exercised many times.
+            while batch.len() < 5 {
+                match c.vfs.dir_next(&cx(), cur).unwrap() {
+                    Some(e) => batch.push(e.name),
+                    None => break,
+                }
+            }
+            c.vfs.dir_close(&cx(), cur);
+
+            if batch.is_empty() {
+                break;
+            }
+            marker = Some(batch.last().unwrap().clone());
+
+            for name in batch {
+                if name == "." || name == ".." {
+                    continue;
+                }
+                c.delete(&format!("del-while-enum\\{name}"));
+                deleted += 1;
+            }
+        }
+
+        assert_eq!(
+            deleted, N,
+            "delete-while-enumerating visited only {deleted} of {N} entries"
+        );
+
+        c.close(h);
+
+        // And the directory is now genuinely empty, so it can be removed --
+        // which is the failure the user actually sees.
+        let names = c.list("del-while-enum");
+        assert_eq!(names, vec![".", ".."], "entries survived the sweep: {names:?}");
+        let dh = c.open_dir("del-while-enum").unwrap();
+        c.vfs
+            .can_delete(&cx(), dh)
+            .expect("the swept directory must be deletable");
+        c.vfs.cleanup(&cx(), dh, CleanupFlags::DELETE);
+        c.vfs.close(&cx(), dh);
+    });
 }
 
 fn order_is_dot_dotdot_then_folded_ascending<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
