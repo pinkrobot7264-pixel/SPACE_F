@@ -1,0 +1,46 @@
+=== mount/unmount stress: 200 cycles ===
+  ...25 cycles
+  ...50 cycles
+  ...75 cycles
+  ...100 cycles
+  ...125 cycles
+  ...150 cycles
+  ...175 cycles
+  ...200 cycles
+
+200 cycles complete (100 odd / 100 even)
+=== OS safety check since 09/08/2026 01:11:28 ===
+PASS  no unexpected shutdown
+PASS  no bugcheck
+WARN  3 critical/error system events:
+
+
+TimeCreated  : 9/8/2026 4:18:51 AM
+Id           : 24641
+ProviderName : Microsoft-Windows-BitLocker-Driver
+Message      : An unexpected error was encountered attempting to retrieve the BitLocker volume master key during 
+               restart.
+
+TimeCreated  : 9/8/2026 4:18:51 AM
+Id           : 24641
+ProviderName : Microsoft-Windows-BitLocker-Driver
+Message      : An unexpected error was encountered attempting to retrieve the BitLocker volume master key during 
+               restart.
+
+TimeCreated  : 9/8/2026 4:18:51 AM
+Id           : 24629
+ProviderName : Microsoft-Windows-BitLocker-Driver
+Message      : The system firmware failed to enable overwriting of system memory on restart. The firmware should be 
+               upgraded.
+
+
+
+PASS  no stale S: volume
+PASS  no orphaned client process
+PASS  S: released
+
+OS safety OK
+
+mount/unmount stress OK
+
+[exited with code 0]

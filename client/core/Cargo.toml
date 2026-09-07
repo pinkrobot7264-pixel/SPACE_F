@@ -4,6 +4,11 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+# Dev-only (manual section 13). CI asserts it is off in release builds.
+fault-injection = ["faults/fault-injection"]
+
 [dependencies]
 contracts.workspace = true
 space-config.workspace = true

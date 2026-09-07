@@ -32,3 +32,66 @@ phases have a stable vocabulary.
 | `post_db_commit` | Phase 8 backend | crash after DB commit, before the object store is updated |
 
 The `faults` unit test asserts this list has 12 unique entries.
+
+---
+
+# Phase 1 additions (manual §13.1)
+
+Phase 1 registers eight points at the WinFsp boundary. They are consulted inside
+`guard()` (`client/core/src/ffi/mod.rs`), which is inside `catch_unwind`, so the
+`Panic` action travels the same path a real panic does — otherwise the ADR-0013
+row would be testing the harness rather than the guard.
+
+| Name | Fires in | Purpose |
+|---|---|---|
+| `winfsp_pre_read` | `space_core_read` | the primary hang/timeout target (§13.2) |
+| `winfsp_pre_write` | `space_core_write` | resource and cancellation faults on a mutating path |
+| `winfsp_pre_open` | `space_core_open` | failure before a handle exists |
+| `winfsp_pre_create` | `space_core_create` | failure during namespace mutation |
+| `winfsp_pre_readdir` | `space_core_dir_open` | enumeration under fault |
+| `winfsp_pre_getinfo` | `space_core_get_file_info` | the cheapest callback to hang |
+| `winfsp_pre_rename` | `space_core_rename` | failure mid-namespace-move |
+| `winfsp_pre_cleanup` | `space_core_cleanup` | failure on the unlink path |
+
+## The Phase 1 action set
+
+`None` · `Fail(ErrorCode)` · `Delay(Duration)` · `Hang` · `Cancel` ·
+`InvalidInput` · `StaleHandle` · `ResourceExhausted` · `Panic`
+
+Each targets something specific, which is why they are distinct variants rather
+than one generic "fail":
+
+| Action | Target | Expected |
+|---|---|---|
+| `StaleHandle` | INV-ID-3 | `InvalidHandle`; no state change; `check_invariants` passes |
+| `ResourceExhausted` | INV-RES-2/3 | `ResourceExhausted`; **state byte-identical**; invariants pass |
+| `InvalidInput` | INV-NS-6, INV-RES-2 | a specific `ErrorCode`, never a panic |
+| `Cancel` | ADR-0009 | `Cancelled` → `STATUS_CANCELLED`; no partial mutation |
+| `Hang` | ADR-0009, L9 | returns `STATUS_IO_TIMEOUT` within `callback_timeout_ms` + 500ms |
+| `Delay` | §13.4 | a delay *under* the deadline must still **succeed** |
+| `Panic` | ADR-0013, ADR-0013a | `STATUS_INTERNAL_ERROR`, logged with `request_id`, poisons, then main-thread unmount |
+
+## `CorruptBytes` is excluded from Phase 1
+
+The variant exists — Phase 3 needs it — but **`arm` refuses it**, with a test.
+
+Phase 1 has no integrity mechanism: content lives in a `Vec<u8>` in-process,
+with no checksum, no authoritative second copy, and no cache to reconstruct
+from. Flipping a byte would produce a test whose expected result is "the flipped
+byte comes back", which asserts nothing — while sitting in the exit gate looking
+like integrity coverage.
+
+It returns in **Phase 3**, injected between chunk-store read and content
+verification, expecting an integrity error.
+
+## What can and cannot be tested in-process
+
+`client/core/src/ffi/fault_tests.rs` covers the action semantics, the deadline
+bound, and that the bound **scales with `callback_timeout_ms`** — which is what
+proves the deadline is real rather than an artefact of fast operations.
+
+The other half of §13.2 is a claim about *Windows*: Explorer stays responsive,
+unrelated operations return `OperationTimeout` rather than hanging, unmount
+still succeeds, and `os-safety-check.ps1` is clean. Those cannot be asserted
+from inside the process and are driven through a real mount by
+`scripts/fault-injection-test.ps1`.

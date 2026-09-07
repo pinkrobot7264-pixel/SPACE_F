@@ -53,33 +53,33 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S8-2 | §8.1 | Full read/write matrix across 6 sizes | `memvfs/imp.rs` | `conformance/read_write.rs the_size_matrix` | test output | PASS |
 | R-S8-3 | §8.1 | read-after-write property test with seed | | | | TODO |
 | R-S9-1 | §9.1 | `ReadDirectory` adapter: buffer-full, NULL marker, resume | `winfsp-adapter/src/callbacks.cpp` | 5,000-file enumeration | functional test PASS | PASS |
-| R-S9-2 | §9.2 | Explorer evidence, 10 steps | | | | TODO |
+| R-S9-2 | §9.2 | Explorer evidence, 10 steps | live mount | `scripts/mount-functional-test.ps1` | 19/19 PASS; GUI steps pending human | TESTING |
 | R-S10-1 | §10.1 | Rename/delete/metadata test rows | `memvfs/imp.rs` | `conformance/rename_delete.rs`, `metadata.rs` | test output | PASS |
 | R-S10-2 | §10.1 | Share access is WinFsp-owned | | | | TODO |
 | R-S11-1 | §11.1 | Conformance suite, 11 modules | `client/core/src/conformance/` | `run_conformance_suite` | 206 tests green | PASS |
-| R-S11-2 | §11.2 | Suite runs with no WinFsp; separate CI job | | | | TODO |
+| R-S11-2 | §11.2 | Suite runs with no WinFsp; separate CI job | `conformance/` | `.github/workflows/ci.yml conformance-no-winfsp` | job asserts WinFsp absent | PASS |
 | R-S11-3 | §11.5 | `Capabilities` exactly one flag; both variants tested | `vfs/types.rs` | `capability_count_is_deliberate`, both runner tests | test output | PASS |
 | R-S11-4 | §11.6 | Per-step invariant checking | `conformance/util.rs step()` | every conformance test | test output | PASS |
 | R-S11-5 | §11.7 | Error-model assertions | `conformance/errors.rs` | `every_reachable_code_is_produced` | test output | PASS |
 | R-S12-1 | §12.1 | `request_id` on every boundary log line | `ffi/mod.rs log_boundary` | live log inspection | path/handle/offset/length present | PASS |
 | R-S12-2 | §12.2 | Log level discipline | `ffi/mod.rs is_expected` | live log: FileNotFound at DEBUG | 14,560 at debug, 0 at error | PASS |
-| R-S12-3 | §12.3 | No file content in logs (asserted) | | | | TODO |
-| R-S12-4 | §12.4 | Four-column translation matrix | | | | TODO |
-| R-S13-1 | §13.1 | Phase 1 fault set + 8 fault points | | | | TODO |
-| R-S13-2 | §13.1 | `CorruptBytes` not armable | | | | TODO |
+| R-S12-3 | §12.3 | No file content in logs (asserted) | `ffi/mod.rs log_boundary` | `file_content_never_reaches_the_log` | test output | PASS |
+| R-S12-4 | §12.4 | Four-column translation matrix | `ffi/ntstatus.rs` | `the_nine_phase_1_codes_map_to_the_manual_s_values` + live NTSTATUS | partial: Win32 column pending | TESTING |
+| R-S13-1 | §13.1 | Phase 1 fault set + 8 fault points | `faults/src/lib.rs`, `ffi/mod.rs apply_fault` | `ffi/fault_tests.rs` (11 tests) | 175 tests w/ feature | PASS |
+| R-S13-2 | §13.1 | `CorruptBytes` not armable | `faults::arm` | `corrupt_bytes_is_not_armable_in_phase_1` x2 | both profiles | PASS |
 | R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | | | | TODO |
-| R-S13-4 | §13.4 | Near-miss delay succeeds | | | | TODO |
-| R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | | | | TODO |
+| R-S13-4 | §13.4 | Near-miss delay succeeds | `apply_fault` Delay | `a_near_miss_delay_still_succeeds` | test output | PASS |
+| R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | `apply_fault` | 6 fault-row tests | test output | PASS |
 | R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | | | | TODO |
 | R-S14-2 | §14.2 | Property tests; seeds printed | `vfs/properties.rs` | 9 proptest properties | test output | PASS |
 | R-S14-3 | §14.3 | Limit & limit+1 with state comparison | `conformance/boundaries.rs` | L1-L8 tests | test output | PASS |
 | R-S15-1 | §15.1 | Clean shutdown in 5 states | | | | TODO |
 | R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | | | | TODO |
-| R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | | | | TODO |
-| R-S16-1 | §16.1 | 200 mount/unmount cycles | | | | TODO |
+| R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | `docs/runbooks/stale-mount-recovery.md` | n/a (prose) | on disk | PASS |
+| R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | `mount-stress.txt`, os-safety OK | PASS |
 | R-S16-2 | §16.2 | 30-min I/O stress | | | | TODO |
 | R-S16-3 | §16.3 | Windows compatibility matrix | | | | TODO |
 | R-S16-4 | §16.4 | ProcMon write-confinement evidence | | | | TODO |
 | R-S16-5 | §16.5 | 4-hour soak with thresholds | | | | TODO |
-| R-S17-1 | §17.1 | `collect-evidence.ps1` | | | | TODO |
+| R-S17-1 | §17.1 | `collect-evidence.ps1` | `scripts/collect-evidence.ps1` | manual run | pending final gate | IMPLEMENTING |
 | R-S17-2 | §17.2–17.7 | Six exit gates satisfied | | | | TODO |

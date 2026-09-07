@@ -45,6 +45,8 @@ pub mod types;
 #[cfg(test)]
 pub mod test_support;
 #[cfg(test)]
+mod fault_tests;
+#[cfg(test)]
 mod log_tests;
 #[cfg(test)]
 mod tests;
@@ -167,6 +169,10 @@ where
 
     // ADR-0013: a panic never reaches a C++ frame, in any profile.
     match catch_unwind(AssertUnwindSafe(|| {
+        // Fault injection sits inside catch_unwind on purpose: the `Panic`
+        // action must travel the same path a real panic does, or the §13.5 row
+        // would be testing the harness rather than the guard.
+        apply_fault(op, &cx)?;
         let core = require_core()?;
         f(&cx, &core, &trace)
     })) {
@@ -266,6 +272,95 @@ fn log_boundary(
             "operation failed: {}",
             e.message
         ),
+    }
+}
+
+/// Map a boundary operation to its registered fault point (§13.1).
+///
+/// Returns `None` for operations with no registered point; the eight names are
+/// fixed by `docs/protocols/fault-points.md` and are not invented here.
+fn fault_point_for(op: &str) -> Option<&'static str> {
+    Some(match op {
+        "read" => "winfsp_pre_read",
+        "write" => "winfsp_pre_write",
+        "open" => "winfsp_pre_open",
+        "create" => "winfsp_pre_create",
+        "dir_open" => "winfsp_pre_readdir",
+        "get_file_info" => "winfsp_pre_getinfo",
+        "rename" => "winfsp_pre_rename",
+        "cleanup" => "winfsp_pre_cleanup",
+        _ => return None,
+    })
+}
+
+/// Evaluate the fault point for this operation, if one is armed.
+///
+/// In a build without the `fault-injection` feature every `fault_point` call is
+/// `#[inline(always)]` and returns `None`, so this collapses to nothing.
+fn apply_fault(op: &'static str, cx: &OpCtx) -> Result<(), SpaceError> {
+    let Some(point) = fault_point_for(op) else {
+        return Ok(());
+    };
+
+    match faults::fault_point(point) {
+        faults::FaultAction::None => Ok(()),
+
+        faults::FaultAction::Fail(code) => {
+            Err(SpaceError::new(code, "injected failure"))
+        }
+
+        // §13.4's near-miss: a delay just under the deadline must still
+        // succeed, so this sleeps and then proceeds rather than failing.
+        faults::FaultAction::Delay(d) => {
+            std::thread::sleep(d);
+            Ok(())
+        }
+
+        // Block until the deadline expires, then report it. This is what makes
+        // L9 falsifiable: the callback must return within
+        // callback_timeout_ms rather than hanging the kernel's dispatcher
+        // thread forever (ADR-0009).
+        faults::FaultAction::Hang => {
+            while cx.remaining().is_some() {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(SpaceError::new(
+                ErrorCode::OperationTimeout,
+                "injected hang exceeded the callback deadline",
+            ))
+        }
+
+        faults::FaultAction::Cancel => Err(SpaceError::new(
+            ErrorCode::Cancelled,
+            "injected cancellation",
+        )),
+
+        faults::FaultAction::InvalidInput => Err(SpaceError::new(
+            ErrorCode::InvalidParameter,
+            "injected invalid input",
+        )),
+
+        faults::FaultAction::StaleHandle => Err(SpaceError::new(
+            ErrorCode::InvalidHandle,
+            "injected stale handle",
+        )),
+
+        faults::FaultAction::ResourceExhausted => Err(SpaceError::new(
+            ErrorCode::ResourceExhausted,
+            "injected resource exhaustion",
+        )),
+
+        faults::FaultAction::Panic => {
+            panic!("injected panic at fault point {point}")
+        }
+
+        // Unreachable: `arm` refuses it in Phase 1. Handled explicitly rather
+        // than with a wildcard so that Phase 3, which makes it armable, gets a
+        // compile error here instead of a silent no-op.
+        faults::FaultAction::CorruptBytes => Err(SpaceError::new(
+            ErrorCode::InternalError,
+            "CorruptBytes is not armable in Phase 1",
+        )),
     }
 }
 
@@ -400,8 +495,64 @@ pub fn start_with_config(cfg: &space_config::Config) -> Result<(), SpaceError> {
         cursor_names: Mutex::new(HashMap::new()),
     };
     *CORE.write() = Some(Arc::new(core));
+
+    arm_fault_from_env();
     Ok(())
 }
+
+/// Arm one fault point from `SPACE_FAULT=<point>=<action>`, for the
+/// through-the-mount fault tests (§13.3).
+///
+/// Deliberately crude -- one point, one action, read once at startup. A real
+/// control channel is a Phase 10 concern, and building one here would add
+/// untested surface to the very component whose failure behaviour is under
+/// test. Compiled out entirely without the `fault-injection` feature, so a
+/// release build cannot be steered by an environment variable.
+#[cfg(feature = "fault-injection")]
+fn arm_fault_from_env() {
+    let Ok(spec) = std::env::var("SPACE_FAULT") else {
+        return;
+    };
+    let Some((point, action)) = spec.split_once('=') else {
+        tracing::warn!(spec, "SPACE_FAULT must be <point>=<action>; ignored");
+        return;
+    };
+
+    let action = match action.to_ascii_lowercase().as_str() {
+        "hang" => faults::FaultAction::Hang,
+        "panic" => faults::FaultAction::Panic,
+        "cancel" => faults::FaultAction::Cancel,
+        "stalehandle" => faults::FaultAction::StaleHandle,
+        "invalidinput" => faults::FaultAction::InvalidInput,
+        "resourceexhausted" => faults::FaultAction::ResourceExhausted,
+        other => {
+            if let Some(ms) = other.strip_prefix("delay:") {
+                match ms.parse::<u64>() {
+                    Ok(ms) => faults::FaultAction::Delay(Duration::from_millis(ms)),
+                    Err(_) => {
+                        tracing::warn!(other, "bad delay in SPACE_FAULT; ignored");
+                        return;
+                    }
+                }
+            } else {
+                tracing::warn!(other, "unknown action in SPACE_FAULT; ignored");
+                return;
+            }
+        }
+    };
+
+    match faults::arm(point, action.clone()) {
+        Ok(()) => tracing::warn!(
+            point,
+            ?action,
+            "FAULT INJECTION ARMED -- this build is not fit for production use"
+        ),
+        Err(e) => tracing::warn!(point, "could not arm fault: {e}"),
+    }
+}
+
+#[cfg(not(feature = "fault-injection"))]
+fn arm_fault_from_env() {}
 
 /// Tear the core down. Main thread only (ADR-0013a).
 #[no_mangle]
