@@ -1,40 +1,29 @@
-//! Error model for SPACE (M0.4).
+//! Error model for SPACE (M0.4, extended by Phase 1 section 1.3).
 //!
 //! One error type crosses every boundary: [`SpaceError`]. Every distinct failure
 //! is a variant of [`ErrorCode`]. Each code is *fully classified* -- it has a
-//! retryability, an [`Origin`], and (unless it is a startup-only error) an
-//! `NTSTATUS` value that the WinFsp adapter will hand back to Windows.
+//! retryability and an [`Origin`].
+//!
+//! **The NTSTATUS translation does not live here (ADR-0015).** `contracts` is
+//! shared with the cloud service, which has no business knowing about Windows
+//! types. The error *taxonomy* is a contract concern; the *translation* is a
+//! Windows concern and lives in `client/core/src/ffi/ntstatus.rs`, together with
+//! the exhaustiveness test that iterates [`ErrorCode::ALL`].
 //!
 //! Rules (see `docs/protocols/errors.md`):
-//!  * No code path blocks indefinitely; every wait resolves to `NetworkTimeout`,
+//!  * No code path blocks indefinitely; every wait resolves to a timeout code,
 //!    `Cancelled`, or success.
+//!  * `OperationTimeout` means *a filesystem operation exceeded its configured
+//!    execution deadline*. It is the only timeout Phase 1 can produce.
+//!    `NetworkTimeout` means *a remote request exceeded its deadline* and is
+//!    reserved for the Phase 4+ transfer engine; the VFS layer may never produce
+//!    it (ADR-0014, enforced by a conformance assertion).
 //!  * Retryability is a property of the code, read from this table by the
 //!    transfer engine -- never a per-call-site judgement.
 
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{OperationId, RequestId};
-
-/// Windows `NTSTATUS` value. See `ntstatus.h`.
-pub type NtStatus = u32;
-
-// NTSTATUS constants used by the mapping below.
-pub const STATUS_OBJECT_NAME_NOT_FOUND: NtStatus = 0xC000_0034;
-pub const STATUS_OBJECT_NAME_COLLISION: NtStatus = 0xC000_0035;
-pub const STATUS_DIRECTORY_NOT_EMPTY: NtStatus = 0xC000_0101;
-pub const STATUS_INVALID_PARAMETER: NtStatus = 0xC000_000D;
-pub const STATUS_INVALID_HANDLE: NtStatus = 0xC000_0008;
-pub const STATUS_FILE_CORRUPT_ERROR: NtStatus = 0xC000_0102;
-pub const STATUS_IO_TIMEOUT: NtStatus = 0xC000_00B5;
-pub const STATUS_DEVICE_NOT_READY: NtStatus = 0xC000_00A3;
-pub const STATUS_UNEXPECTED_NETWORK_ERROR: NtStatus = 0xC000_00C4;
-pub const STATUS_IO_DEVICE_ERROR: NtStatus = 0xC000_0185;
-pub const STATUS_DISK_FULL: NtStatus = 0xC000_007F;
-pub const STATUS_INSUFFICIENT_RESOURCES: NtStatus = 0xC000_009A;
-pub const STATUS_CANCELLED: NtStatus = 0xC000_0120;
-pub const STATUS_SHARING_VIOLATION: NtStatus = 0xC000_0043;
-pub const STATUS_ACCESS_DENIED: NtStatus = 0xC000_0022;
-pub const STATUS_INTERNAL_ERROR: NtStatus = 0xC000_00E5;
 
 /// Which side of the client/server boundary a code originates from.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -57,6 +46,17 @@ pub enum ErrorCode {
     FileNotFound,
     FileExists,
     DirectoryNotEmpty,
+    // --- Phase 1 filesystem additions (Phase 1 manual section 1.3) ---
+    ObjectNameInvalid,
+    ObjectPathNotFound,
+    NotADirectory,
+    FileIsADirectory,
+    EndOfFile,
+    NameTooLong,
+    CannotDelete,
+    BufferOverflow,
+    OperationTimeout,
+    // --- end Phase 1 additions ---
     VersionNotFound,
     ManifestNotFound,
     ChunkNotFound,
@@ -90,6 +90,15 @@ impl ErrorCode {
         ErrorCode::FileNotFound,
         ErrorCode::FileExists,
         ErrorCode::DirectoryNotEmpty,
+        ErrorCode::ObjectNameInvalid,
+        ErrorCode::ObjectPathNotFound,
+        ErrorCode::NotADirectory,
+        ErrorCode::FileIsADirectory,
+        ErrorCode::EndOfFile,
+        ErrorCode::NameTooLong,
+        ErrorCode::CannotDelete,
+        ErrorCode::BufferOverflow,
+        ErrorCode::OperationTimeout,
         ErrorCode::VersionNotFound,
         ErrorCode::ManifestNotFound,
         ErrorCode::ChunkNotFound,
@@ -113,7 +122,8 @@ impl ErrorCode {
     ];
 
     /// Startup-only errors happen before the filesystem is mounted, so they have
-    /// no meaningful `NTSTATUS`.
+    /// no meaningful `NTSTATUS`. The mapping table at the Windows boundary reads
+    /// this predicate (ADR-0015).
     pub fn is_startup_only(self) -> bool {
         matches!(
             self,
@@ -131,6 +141,7 @@ impl ErrorCode {
             ErrorCode::NetworkTimeout
                 | ErrorCode::NetworkUnavailable
                 | ErrorCode::ResourceExhausted
+                | ErrorCode::OperationTimeout
         )
     }
 
@@ -145,7 +156,12 @@ impl ErrorCode {
             | NetworkTimeout
             | NetworkUnavailable
             | Cancelled
-            | SharingViolation => Origin::Client,
+            | SharingViolation
+            // Produced only at the Windows-facing boundary or by VfsPath parsing.
+            | ObjectNameInvalid
+            | NameTooLong
+            | BufferOverflow
+            | OperationTimeout => Origin::Client,
             AuthFailed | PermissionDenied => Origin::Server,
             FileNotFound
             | FileExists
@@ -162,36 +178,14 @@ impl ErrorCode {
             | StorageError
             | DiskFull
             | ResourceExhausted
+            // Namespace and file-state codes: local now, remote-capable later.
+            | ObjectPathNotFound
+            | NotADirectory
+            | FileIsADirectory
+            | EndOfFile
+            | CannotDelete
             | InternalError => Origin::Either,
         }
-    }
-
-    /// The `NTSTATUS` this code maps to, or `None` for startup-only errors.
-    pub fn ntstatus(self) -> Option<NtStatus> {
-        use ErrorCode::*;
-        Some(match self {
-            ConfigMissing | ConfigInvalid | ConfigUnsupportedVersion => return None,
-            FileNotFound | VersionNotFound | ManifestNotFound | ChunkNotFound => {
-                STATUS_OBJECT_NAME_NOT_FOUND
-            }
-            FileExists => STATUS_OBJECT_NAME_COLLISION,
-            DirectoryNotEmpty => STATUS_DIRECTORY_NOT_EMPTY,
-            InvalidParameter => STATUS_INVALID_PARAMETER,
-            InvalidHandle => STATUS_INVALID_HANDLE,
-            IntegrityHashMismatch
-            | IntegrityLengthMismatch
-            | IntegrityManifestInvalid
-            | IntegrityChunkIdConflict => STATUS_FILE_CORRUPT_ERROR,
-            NetworkTimeout => STATUS_IO_TIMEOUT,
-            NetworkUnavailable => STATUS_UNEXPECTED_NETWORK_ERROR,
-            ProtocolViolation | StorageError => STATUS_IO_DEVICE_ERROR,
-            DiskFull => STATUS_DISK_FULL,
-            ResourceExhausted => STATUS_INSUFFICIENT_RESOURCES,
-            Cancelled => STATUS_CANCELLED,
-            SharingViolation => STATUS_SHARING_VIOLATION,
-            AuthFailed | PermissionDenied => STATUS_ACCESS_DENIED,
-            InternalError => STATUS_INTERNAL_ERROR,
-        })
     }
 }
 
@@ -252,10 +246,6 @@ impl SpaceError {
     pub fn retryable(&self) -> bool {
         self.code.retryable()
     }
-
-    pub fn ntstatus(&self) -> Option<NtStatus> {
-        self.code.ntstatus()
-    }
 }
 
 impl std::fmt::Display for SpaceError {
@@ -283,24 +273,25 @@ mod tests {
     #[test]
     fn all_slice_covers_every_variant() {
         // Guards against adding a variant and forgetting ALL.
-        assert_eq!(ErrorCode::ALL.len(), 26);
+        // 26 Phase 0 codes + 9 Phase 1 filesystem codes (Phase 1 manual 1.3).
+        assert_eq!(ErrorCode::ALL.len(), 35);
     }
 
     #[test]
     fn every_error_code_is_fully_classified() {
+        // The NTSTATUS half of "fully classified" is asserted at the Windows
+        // boundary (client/core/src/ffi/ntstatus.rs) per ADR-0015; contracts
+        // owns only retryability and origin.
         for &code in ErrorCode::ALL {
             let _ = code.retryable();
             let _ = code.origin();
-            assert_eq!(
-                code.ntstatus().is_none(),
-                code.is_startup_only(),
-                "unmapped code: {code:?}"
-            );
+            let _ = code.is_startup_only();
         }
     }
 
     #[test]
-    fn retryable_is_exactly_the_three_network_resource_codes() {
+    fn retryable_is_exactly_the_network_resource_and_operation_timeout_codes() {
+        // OperationTimeout is retryable per the Phase 1 manual section 1.3 table.
         let retryable: Vec<_> = ErrorCode::ALL
             .iter()
             .copied()
@@ -309,11 +300,29 @@ mod tests {
         assert_eq!(
             retryable,
             vec![
+                ErrorCode::OperationTimeout,
                 ErrorCode::NetworkTimeout,
                 ErrorCode::NetworkUnavailable,
-                ErrorCode::ResourceExhausted
+                ErrorCode::ResourceExhausted,
             ]
         );
+    }
+
+    #[test]
+    fn the_nine_phase_1_codes_are_present() {
+        for code in [
+            ErrorCode::ObjectNameInvalid,
+            ErrorCode::ObjectPathNotFound,
+            ErrorCode::NotADirectory,
+            ErrorCode::FileIsADirectory,
+            ErrorCode::EndOfFile,
+            ErrorCode::NameTooLong,
+            ErrorCode::CannotDelete,
+            ErrorCode::BufferOverflow,
+            ErrorCode::OperationTimeout,
+        ] {
+            assert!(ErrorCode::ALL.contains(&code), "{code:?} missing from ALL");
+        }
     }
 
     #[test]
@@ -328,6 +337,10 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&ErrorCode::IntegrityHashMismatch).unwrap(),
             "\"INTEGRITY_HASH_MISMATCH\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ErrorCode::ObjectPathNotFound).unwrap(),
+            "\"OBJECT_PATH_NOT_FOUND\""
         );
     }
 

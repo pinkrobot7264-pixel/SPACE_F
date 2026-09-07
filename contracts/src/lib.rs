@@ -18,7 +18,7 @@ pub mod model;
 pub mod redaction;
 pub mod validate;
 
-pub use errors::{ErrorCode, NtStatus, Origin, SpaceError};
+pub use errors::{ErrorCode, Origin, SpaceError};
 pub use ids::{ChunkId, DirectoryId, FileId, ManifestId, OperationId, RequestId, VersionId};
 pub use model::{Chunk, File, Manifest, ManifestEntry, Version, VersionState};
 pub use redaction::{sanitize_url, Password, Secret, Token};

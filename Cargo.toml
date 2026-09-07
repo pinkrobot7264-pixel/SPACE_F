@@ -59,4 +59,6 @@ reqwest = { version = "0.12", features = ["json"] }
 
 [profile.release]
 debug = 1         # keep symbols for crash-dump analysis
-panic = "abort"
+# panic = "abort" removed in Phase 1 -- see ADR-0013. The catch_unwind guard at
+# the FFI boundary must be effective in release, or debug and release have
+# different panic semantics, which is worse than either.

@@ -65,7 +65,8 @@ Docs: `docs/decisions/ADR-000{1..6}-*.md`,
 
 ## 5. Files modified
 
-`Cargo.toml` (workspace deps, `[profile.release]` `panic=abort`/`debug=1`,
+`Cargo.toml` (workspace deps, `[profile.release]` `panic=abort`/`debug=1`
+**[AMENDED IN PHASE 1 -- see below]**,
 `rust-version`, `tests/suites` member), `Cargo.lock`, every crate `Cargo.toml`
 (names aligned to the manual: `space-*`), every crate `src/lib.rs` (real
 content), `client/winfsp-adapter/{CMakeLists.txt,adapter.cpp}`,
@@ -106,7 +107,9 @@ suites 20 (E2E happy 2, E2E negative 11, logging 2, 5 scaffolds).
 ## 8. Build verification
 
 - `cargo build --workspace` — OK (debug).
-- `cargo build --workspace --release` — OK. `panic="abort"`, `debug=1`. The
+- `cargo build --workspace --release` — OK. `debug=1`. `panic="abort"` was set in
+  Phase 0 but **has been removed in Phase 1 (ADR-0013)** -- see the amendment at
+  the end of this document. The
   release-only config validators (`wal_fsync_policy != "never"`,
   `auth_mode != "none"`) compile in.
 - C++ WinFsp adapter — `cmake -G Ninja` + `cmake --build` under `vcvars64`:
@@ -197,3 +200,59 @@ renames and `Cargo.lock` all move together).
 4. Restore the `clean-windows` VM snapshot and do the manual's clean-machine
    rerun (§17.3) — the one check that can only be done by you.
 5. Begin Phase 1 (WinFsp skeleton + safe mount) against `docs/decisions/ADR-0001`.
+
+---
+
+## Amendments made during Phase 1
+
+This section is appended by Phase 1. Phase 0 is tagged and immutable as a
+*result*; this document must not be left describing behaviour the code no
+longer has.
+
+### A1 — `panic = "abort"` removed from `[profile.release]` (ADR-0013)
+
+**Phase 0 state:** the workspace release profile set `panic = "abort"`.
+
+**Phase 1 change:** the key is removed; release builds unwind.
+
+**Why:** Phase 1 puts a `catch_unwind` guard at every FFI entry point so that a
+Rust panic is converted into `STATUS_INTERNAL_ERROR`, logged with its
+`request_id`, and used to poison the filesystem into a controlled shutdown
+(ADR-0013, ADR-0013a). Under `panic = "abort"` that guard is dead code in
+release: the process aborts and the one diagnostic that identifies the failing
+request is discarded. Leaving it set would also give debug and release builds
+different panic semantics, which is worse than either choice on its own.
+
+**Scope:** this is a change to the *release profile only*. It does not alter any
+Phase 0 behaviour that was tested, and the Phase 0 test suite is unaffected.
+
+### A2 — `ErrorCode::ntstatus()` moved out of `contracts` (ADR-0015)
+
+**Phase 0 state:** `contracts/src/errors.rs` owned the `NtStatus` type alias,
+the `STATUS_*` constants, `ErrorCode::ntstatus()` and `SpaceError::ntstatus()`,
+and the M0.4 mapping test asserted a total mapping there.
+
+**Phase 1 change:** all of it moves to `client/core/src/ffi/ntstatus.rs`.
+`contracts` retains the error *taxonomy* — the codes, `retryable()`, `origin()`
+and `is_startup_only()` — and no longer mentions a Windows type.
+
+**Why:** `contracts` is shared with the cloud service, which has no business
+knowing about NTSTATUS. The taxonomy is a contract concern; the translation is
+a Windows concern.
+
+**Test movement:** M0.4's mapping test moves with the code. It iterates
+`ErrorCode::ALL`, so it works unchanged. It asserts **totality, not
+injectivity** — several codes legitimately share one NTSTATUS (see ADR-0015).
+
+### A3 — Nine filesystem error codes added (Phase 1 manual §1.3)
+
+`ObjectNameInvalid`, `ObjectPathNotFound`, `NotADirectory`, `FileIsADirectory`,
+`EndOfFile`, `NameTooLong`, `CannotDelete`, `BufferOverflow`,
+`OperationTimeout`. M0.4's exhaustiveness discipline held: adding them broke the
+build in `cloud/api/src/lib.rs` until each was classified, which is exactly what
+that test exists to do.
+
+`OperationTimeout` is retryable, so M0.4's
+`retryable_is_exactly_the_three_network_resource_codes` test is now
+`retryable_is_exactly_the_network_resource_and_operation_timeout_codes` and
+asserts four codes. This tracks the manual's §1.3 table; it is not a relaxation.

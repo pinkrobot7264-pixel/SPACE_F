@@ -149,6 +149,15 @@ fn status_for(code: ErrorCode) -> StatusCode {
         NetworkTimeout | NetworkUnavailable => StatusCode::GATEWAY_TIMEOUT,
         ResourceExhausted => StatusCode::TOO_MANY_REQUESTS,
         DiskFull | StorageError | Cancelled | InternalError => StatusCode::INTERNAL_SERVER_ERROR,
+        // Phase 1 filesystem codes (manual 1.3). These are client-local: the
+        // cloud service cannot produce them, but the taxonomy is shared, so
+        // exhaustiveness forces a deliberate classification here.
+        ObjectPathNotFound => StatusCode::NOT_FOUND,
+        ObjectNameInvalid | NameTooLong => StatusCode::BAD_REQUEST,
+        NotADirectory | FileIsADirectory | CannotDelete => StatusCode::CONFLICT,
+        EndOfFile => StatusCode::RANGE_NOT_SATISFIABLE,
+        OperationTimeout => StatusCode::GATEWAY_TIMEOUT,
+        BufferOverflow => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
