@@ -147,9 +147,45 @@ for ($n = 1; $n -le $Iterations; $n++) {
         if (Test-Path "$root\") { $mounted = $true; break }
     }
     if (-not $mounted) {
-        Write-Host "FAIL  iteration $n : mount failed" -ForegroundColor Red
+        # Preserve everything needed to diagnose this later. The client's log is
+        # overwritten every iteration, so a failure that is not captured HERE
+        # cannot be investigated afterwards -- a 200-cycle run once reported
+        # "1 FAILURE(S)" with no indication anywhere of which iteration or why.
+        # Wait for the process to die and for its redirected stderr to be
+        # flushed before reading. Reading immediately captured 274 bytes -- the
+        # startup config line, cut mid-JSON -- because the client was still
+        # writing, so the one line that matters (main.rs logging "mount failed"
+        # with its NTSTATUS) was never in the captured file.
+        $exited = $p.WaitForExit(5000)
+        if (-not $exited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; $p.WaitForExit(3000) | Out-Null }
+        Start-Sleep -Milliseconds 750
+        $code = try { $p.ExitCode } catch { $null }
+        if ($null -eq $code -or "$code" -eq "") { $code = "unavailable" }
+        $clientLog = Get-Content $iterLog -Raw -ErrorAction SilentlyContinue
+        # Volume state at the moment of failure. If the previous cycle's volume
+        # is still registered here, the mount collided with a letter Windows had
+        # not finished releasing -- Test-Path going false does not prove WinFsp
+        # has deregistered. That is a different fault from the client failing to
+        # mount for its own reasons, and only this tells them apart.
+        $volsAtFailure = (& "C:\Program Files (x86)\WinFsp\bin\fsptool-x64.exe" lsvol 2>&1 | Out-String).Trim()
+        if (-not $volsAtFailure) { $volsAtFailure = "none" }
+        $keep = "docs\evidence\phase-1\mount-stress-failure-iter$n.log"
+        New-Item -ItemType Directory -Force -Path (Split-Path $keep) | Out-Null
+        @(
+            "iteration $n mount failure, $(Get-Date -Format o)"
+            "client pid $($p.Id), exited=$exited, exit code $code"
+            "S: present at failure : $(Test-Path "$root\")"
+            "winfsp volumes at failure: $volsAtFailure"
+            ""
+            "--- client stderr ---"
+            $clientLog
+        ) -join "`r`n" | Out-File -Encoding utf8 $keep
+        Write-Host "FAIL  iteration $n : mount failed (client exited=$exited, code $code)" -ForegroundColor Red
+        $lines += "FAIL  iteration $n -- mount did not appear within 15s; client pid $($p.Id) exited=$exited code=$code"
+        $lines += "      client log preserved at $keep"
         $fail++
         Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
         continue
     }
 
@@ -167,6 +203,7 @@ for ($n = 1; $n -le $Iterations; $n++) {
         $r = Start-Process -FilePath "powershell" -PassThru -Wait -WindowStyle Hidden `
             -ArgumentList @("-NoProfile", "-File", "$PSScriptRoot\send-ctrl-c.ps1", "-TargetPid", $p.Id)
         if ($r.ExitCode -ne 0) {
+            $lines += "FAIL  iteration $n -- could not deliver Ctrl-C (send-ctrl-c exit $($r.ExitCode)); the graceful path was not exercised"
             Write-Host "FAIL  iteration $n : could not deliver Ctrl-C (graceful path untested)" -ForegroundColor Red
             $fail++
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
