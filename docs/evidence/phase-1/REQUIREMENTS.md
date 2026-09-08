@@ -21,7 +21,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S2-5 | §2.4 | `build.rs` compiles adapter, delay-loads winfsp-x64 | `client/main/build.rs` | LNK4199 absent; runtime mount works | S: mounts | PASS |
 | R-S2-6 | §2.5 | Struct layout asserted both sides (64 bytes, offset 16) | `ffi/types.rs`, `space_core.h` | `file_info_layout_matches_c` + C++ static_assert | test output | PASS |
 | R-S2-7 | §2.5 | String/nullability boundary tests | `ffi/mod.rs` | 12 tests incl. null out-pointers | test output | PASS |
-| R-S2-8 | §2.5 | Panic model tests pass debug AND release | `ffi/mod.rs guard` | `ffi/tests.rs` | 146 release tests green | PASS |
+| R-S2-8 | §2.5 | Panic model tests pass debug AND release | `ffi/mod.rs guard` | `ffi/tests.rs` | 167 release tests green post-changes | PASS |
 | R-S2-9 | §2.5 | Timeout to `STATUS_IO_TIMEOUT`; no `NetworkTimeout` in core | `ffi/ntstatus.rs` | `an_expired_deadline_yields_status_io_timeout`, grep test | test output | PASS |
 | R-S3-1 | §3.1 | Identity model documented; 5 identifiers | `docs/protocols/identity.md` | `vfs/ids.rs` tests | 202 tests green | PASS |
 | R-S3-2 | §3.1 | `index_number` monotonic, not slab-derived | `memvfs/node.rs`, `imp.rs take_index_number` | `index_numbers_are_strictly_increasing_and_never_reused` | test output | PASS |
