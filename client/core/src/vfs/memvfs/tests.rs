@@ -735,3 +735,156 @@ fn lock_acquisition_is_deadline_bounded() {
         "returned before the deadline: {elapsed:?}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Windowed enumeration (implementation-specific: §11.3 keeps this out of
+// conformance, because the window size is a MemVfs choice, not a contract term)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_directory_larger_than_one_window_enumerates_completely() {
+    // The refill path. DIR_WINDOW is 1024, so this crosses it twice and ends
+    // on a partial window -- the three cases that differ.
+    let v = vfs();
+    create_dir(&v, "\\big");
+    const N: usize = 2_500;
+    for i in 0..N {
+        let h = create_file(&v, &format!("\\big\\f{i:05}"));
+        v.cleanup(&cx(), h, CleanupFlags::NONE);
+        v.close(&cx(), h);
+    }
+
+    let d = v
+        .open(
+            &cx(),
+            &v.parse_path("\\big").unwrap(),
+            OpenOptions {
+                create_options: FILE_DIRECTORY_FILE,
+                granted_access: 0,
+            },
+        )
+        .unwrap()
+        .handle;
+
+    let cur = v.dir_open(&cx(), d, None, None).unwrap();
+    let mut names = Vec::new();
+    while let Some(e) = v.dir_next(&cx(), cur).unwrap() {
+        names.push(e.name);
+    }
+    v.dir_close(&cx(), cur);
+    v.close(&cx(), d);
+
+    assert_eq!(names.len(), N + 2, "expected N + 2 entries across window refills");
+    assert_eq!(names[0], ".");
+    assert_eq!(names[1], "..");
+
+    // Ascending folded order is preserved ACROSS window boundaries -- the case
+    // a single-window implementation cannot get wrong and a refilling one can.
+    let children = &names[2..];
+    let mut sorted = children.to_vec();
+    sorted.sort();
+    assert_eq!(children, sorted.as_slice(), "order broke across a window boundary");
+
+    let mut dedup = sorted.clone();
+    dedup.dedup();
+    assert_eq!(dedup.len(), N, "an entry was duplicated or dropped at a refill");
+}
+
+#[test]
+fn a_marker_past_a_window_boundary_resumes_correctly() {
+    // Resuming from a marker that sits beyond the first window: the resume key
+    // must seek into the BTreeMap rather than into the current buffer.
+    let v = vfs();
+    create_dir(&v, "\\big");
+    const N: usize = 1_500;
+    for i in 0..N {
+        let h = create_file(&v, &format!("\\big\\f{i:05}"));
+        v.cleanup(&cx(), h, CleanupFlags::NONE);
+        v.close(&cx(), h);
+    }
+
+    let d = v
+        .open(
+            &cx(),
+            &v.parse_path("\\big").unwrap(),
+            OpenOptions {
+                create_options: FILE_DIRECTORY_FILE,
+                granted_access: 0,
+            },
+        )
+        .unwrap()
+        .handle;
+
+    // f01200 is well past the 1024-entry first window.
+    let cur = v.dir_open(&cx(), d, None, Some("f01200")).unwrap();
+    let mut names = Vec::new();
+    while let Some(e) = v.dir_next(&cx(), cur).unwrap() {
+        names.push(e.name);
+    }
+    v.dir_close(&cx(), cur);
+    v.close(&cx(), d);
+
+    assert_eq!(
+        names.len(),
+        N - 1201,
+        "resume past a window boundary yielded the wrong count"
+    );
+    assert_eq!(names.first().map(String::as_str), Some("f01201"));
+    assert_eq!(names.last().map(String::as_str), Some("f01499"));
+}
+
+#[test]
+fn enumeration_work_per_call_does_not_grow_with_directory_size() {
+    // The defect this replaced: dir_open snapshotted every child on every call,
+    // so a full listing was O(N^2) and, under the single state lock, starved
+    // every other operation.
+    //
+    // Timing is a blunt instrument, so this asserts the SHAPE rather than an
+    // absolute number: ten times the entries must not cost anything like ten
+    // times as much per dir_open call.
+    use std::time::Instant;
+
+    fn time_one_dir_open(n: usize) -> std::time::Duration {
+        let v = vfs();
+        create_dir(&v, "\\d");
+        for i in 0..n {
+            let h = create_file(&v, &format!("\\d\\f{i:06}"));
+            v.cleanup(&cx(), h, CleanupFlags::NONE);
+            v.close(&cx(), h);
+        }
+        let d = v
+            .open(
+                &cx(),
+                &v.parse_path("\\d").unwrap(),
+                OpenOptions {
+                    create_options: FILE_DIRECTORY_FILE,
+                    granted_access: 0,
+                },
+            )
+            .unwrap()
+            .handle;
+
+        let started = Instant::now();
+        for _ in 0..20 {
+            let cur = v.dir_open(&cx(), d, None, None).unwrap();
+            v.dir_close(&cx(), cur);
+        }
+        let elapsed = started.elapsed();
+        v.close(&cx(), d);
+        elapsed
+    }
+
+    let small = time_one_dir_open(500);
+    let large = time_one_dir_open(5_000);
+
+    // With the window, both do at most DIR_WINDOW work, so the ratio should be
+    // near 1. A quadratic implementation would show ~10x here. The bound is
+    // deliberately loose -- this is a shape assertion on a timing measurement,
+    // and a tight bound would be flaky on a loaded machine.
+    let ratio = large.as_secs_f64() / small.as_secs_f64().max(1e-6);
+    assert!(
+        ratio < 4.0,
+        "dir_open cost grew {ratio:.1}x for 10x the entries \
+         ({small:?} -> {large:?}); work per call is not bounded by the window"
+    );
+}

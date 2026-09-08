@@ -941,75 +941,81 @@ impl Vfs for MemVfs {
         // filtering (fs-semantics §8). Recorded as a dependency, not a gap.
 
         let is_root = id == s.root;
-        let mut entries: Vec<(String, FileInfo)> = Vec::new();
 
-        // Order: ".", then "..", then children in ascending folded-name order.
-        // Both dot entries are omitted for the root.
-        if !is_root {
-            let self_info = s.node(id)?.info();
-            entries.push((".".to_string(), self_info));
-            let parent_id = s.node(id)?.parent.unwrap_or(s.root);
-            let parent_info = s.node(parent_id)?.info();
-            entries.push(("..".to_string(), parent_info));
-        }
-
-        // BTreeMap iteration is already in ascending folded-name order, which is
-        // the total, stable order §3.3.8 requires.
-        let children: Vec<NodeId> = s.node(id)?.children.values().copied().collect();
-        for child in children {
-            let n = s.node(child)?;
-            entries.push((n.name.clone(), n.info()));
-        }
-
-        // The marker is a resume point, not a filter: yield entries strictly
-        // after it **in the total order**, which is not the same as "find this
-        // name and start after it".
-        //
-        // Resuming by membership silently truncates any enumeration that
-        // deletes as it goes -- `Remove-Item -Recurse`, `rmdir /s`, and every
-        // other delete-while-enumerating client. Those clients enumerate a
-        // batch, delete it, then resume from the last name they saw, which by
-        // then no longer exists. A membership search finds nothing, returns
+        // The marker is a resume point in the **total order**, not a name to
+        // look up. Resuming by membership silently truncates any enumeration
+        // that deletes as it goes -- `Remove-Item -Recurse`, `rmdir /s`, and
+        // every other delete-while-enumerating client. Those clients enumerate
+        // a batch, delete it, then resume from the last name they saw, which by
+        // then no longer exists. A membership search finds nothing, reports
         // "end of directory", and the caller concludes the directory is empty
         // while ~97% of it remains. Observed exactly that way: a 500-file
         // directory lost 35 files per pass and then failed with
         // STATUS_DIRECTORY_NOT_EMPTY.
         //
-        // Ordering by key makes a deleted marker harmless: the enumeration
-        // resumes at the first surviving entry that sorts after it.
+        // Ordering makes a deleted marker harmless: the enumeration resumes at
+        // the first surviving entry that sorts after it.
         //
-        // The key is `(rank, folded_name)` rather than the folded name alone,
-        // because "." and ".." are positioned by convention rather than by
-        // sort order -- a child named "!readme" folds below "." and would
-        // otherwise be placed before the dot entries.
-        let start = match marker {
-            None => 0,
-            Some(m) => {
-                let mkey = order_key(m, s.cfg.capabilities);
-                // `entries` is built in exactly this order, so the predicate is
-                // monotonic and partition_point is the first index past the
-                // marker -- O(log N) rather than the O(N) scan it replaces.
-                entries.partition_point(|(name, _)| {
-                    order_key(name, s.cfg.capabilities) <= mkey
-                })
-            }
+        // "." and ".." are positioned by convention rather than by sort order
+        // -- a child named "!readme" folds below "." -- so they are handled by
+        // rank here instead of being mixed into the child ordering.
+        let (want_dot, want_dotdot, after) = match marker {
+            None => (!is_root, !is_root, None),
+            Some(".") => (false, !is_root, None),
+            Some("..") => (false, false, None),
+            Some(m) => (false, false, Some(s.fold(m))),
         };
 
+        let (entries, resume, more) =
+            collect_window(&s, id, after.as_ref(), want_dot, want_dotdot, DIR_WINDOW)?;
+
         s.cursors.alloc(CursorSlot {
+            dir: id,
             entries,
-            next: start,
+            next: 0,
+            resume,
+            drained: !more,
         })
     }
 
     fn dir_next(&self, cx: &OpCtx, cursor: CursorId) -> Result<Option<DirEntry>, SpaceError> {
         cx.check()?;
         let mut s = self.state(cx)?;
-        let slot = s.cursors.resolve_mut(cursor)?;
-        if slot.next >= slot.entries.len() {
-            return Ok(None);
+
+        // Refill the window if it is exhausted and more children remain. The
+        // borrows are deliberately sequential -- read the cursor's position,
+        // then read nodes, then write the cursor back -- because the node table
+        // and the cursor table are separate fields and cannot be borrowed at
+        // once through methods.
+        let (dir, resume, drained, exhausted) = {
+            let c = s.cursors.resolve(cursor)?;
+            (
+                c.dir,
+                c.resume.clone(),
+                c.drained,
+                c.next >= c.entries.len(),
+            )
+        };
+
+        if exhausted {
+            if drained {
+                return Ok(None);
+            }
+            let (entries, next_resume, more) =
+                collect_window(&s, dir, resume.as_ref(), false, false, DIR_WINDOW)?;
+            let c = s.cursors.resolve_mut(cursor)?;
+            c.entries = entries;
+            c.next = 0;
+            c.resume = next_resume;
+            c.drained = !more;
+            if c.entries.is_empty() {
+                return Ok(None);
+            }
         }
-        let (name, info) = slot.entries[slot.next].clone();
-        slot.next += 1;
+
+        let c = s.cursors.resolve_mut(cursor)?;
+        let (name, info) = c.entries[c.next].clone();
+        c.next += 1;
         Ok(Some(DirEntry { name, info }))
     }
 
@@ -1023,20 +1029,80 @@ impl Vfs for MemVfs {
     }
 }
 
-/// The total order of a directory enumeration (fs-semantics §8).
+
+/// How many entries one enumeration window holds.
 ///
-/// `.` then `..` then children in ascending folded-name order. Returned as a
-/// sortable key so that "strictly after the marker" is decided by comparison
-/// rather than by looking the marker up -- which is what keeps a
-/// delete-while-enumerating client from silently truncating (INV-DIR-2).
+/// WinFsp's `ReadDirectory` buffer is typically 64 KiB, which fits a few
+/// hundred entries, so one window comfortably covers one callback. The point of
+/// the bound is that the work per call is O(window), not O(directory size):
+/// snapshotting the whole directory on every call made a full listing O(N^2)
+/// and, under §3.6's single state lock, made a large listing starve every other
+/// operation.
+const DIR_WINDOW: usize = 1024;
+
+/// One window of directory entries, the folded name to resume after, and
+/// whether more children remain.
 ///
-/// The rank is needed because the dot entries are placed by convention, not by
-/// sort order: a child named `!readme` folds below `.` and would otherwise be
-/// ordered ahead of them.
-fn order_key(name: &str, caps: Capabilities) -> (u8, FoldedName) {
-    match name {
-        "." => (0, FoldedName::new("", caps)),
-        ".." => (1, FoldedName::new("", caps)),
-        _ => (2, FoldedName::new(name, caps)),
+/// Named rather than returned as a bare tuple: the three parts are easy to
+/// transpose at a call site, and the resume key in particular is load-bearing
+/// -- getting it wrong is what silently truncates an enumeration.
+type DirWindow = (Vec<(String, FileInfo)>, Option<FoldedName>, bool);
+
+/// Collect one bounded window of directory entries.
+///
+/// Returns the entries, the folded name to resume after, and whether more
+/// children remain. Uses `BTreeMap::range`, so seeking to the resume point is
+/// O(log N) rather than a scan.
+fn collect_window(
+    s: &MemVfsState,
+    dir: NodeId,
+    after: Option<&FoldedName>,
+    want_dot: bool,
+    want_dotdot: bool,
+    limit: usize,
+) -> Result<DirWindow, SpaceError> {
+    use std::ops::Bound;
+
+    let mut out: Vec<(String, FileInfo)> = Vec::new();
+    let node = s.node(dir)?;
+
+    if want_dot {
+        out.push((".".to_string(), node.info()));
     }
+    if want_dotdot {
+        let parent_id = node.parent.unwrap_or(s.root);
+        out.push(("..".to_string(), s.node(parent_id)?.info()));
+    }
+
+    // BTreeMap iteration is already in ascending folded-name order, which is
+    // the total, stable order fs-semantics §8 requires.
+    let range = match after {
+        None => node
+            .children
+            .range::<FoldedName, (Bound<&FoldedName>, Bound<&FoldedName>)>((
+                Bound::Unbounded,
+                Bound::Unbounded,
+            )),
+        Some(k) => node
+            .children
+            .range::<FoldedName, (Bound<&FoldedName>, Bound<&FoldedName>)>((
+                Bound::Excluded(k),
+                Bound::Unbounded,
+            )),
+    };
+
+    let mut resume = None;
+    let mut more = false;
+    for (key, child) in range {
+        if out.len() >= limit {
+            // There is at least one more child than this window holds.
+            more = true;
+            break;
+        }
+        let n = s.node(*child)?;
+        out.push((n.name.clone(), n.info()));
+        resume = Some(key.clone());
+    }
+
+    Ok((out, resume, more))
 }

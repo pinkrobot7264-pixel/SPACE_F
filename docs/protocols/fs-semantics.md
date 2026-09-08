@@ -281,3 +281,28 @@ threads rather than by client behaviour (which is why L8 can be 256).
 **INV-DIR-2 is the executable form of the marker bug that silently truncates
 large directories.** Correct at 50 entries and truncated at 5,000 is the classic
 symptom.
+
+### Note — windowed enumeration is an implementation detail
+
+`MemVfs` fills a cursor from a **bounded window** of entries and refills it as
+`dir_next` drains, rather than snapshotting the whole directory.
+
+This is not a contract term — the rules above are unchanged, and a Phase 2
+implementation may window differently or not at all. It is recorded because the
+naive alternative is a trap worth naming:
+
+Snapshotting the whole directory at each `dir_open` makes a full listing
+**O(N²)**. WinFsp issues roughly `N / entries-per-buffer` `ReadDirectory` calls
+(measured: ~33 entries per call), and each one copied all N names and
+`FileInfo`s. At L6 (65,536 entries) that is on the order of 130 million copies
+for one listing. Worse, because §3.6 serialises everything behind a single state
+lock, a large listing in progress **starves every other operation**: a 5,000-entry
+root was observed holding a listing past three minutes while concurrent file
+creation fell below two files per second.
+
+With the window, work per callback is bounded by the window size. Measured after
+the change: ~19,500 files, 507 `dir_open` calls, **maximum 3 ms**, most 0 ms.
+
+The resume key is the folded name of the last child yielded, and seeking to it
+uses `BTreeMap::range` — O(log N), not a scan. That is also what makes the
+deleted-marker case correct (see §8's marker rule).

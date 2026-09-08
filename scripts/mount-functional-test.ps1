@@ -167,6 +167,55 @@ Check "robocopy a tree in and out" {
     if ($inCount -ne $outCount) { throw "file count differs: $inCount in, $outCount out" }
 }
 
+Check "share access is enforced by WinFsp, not by SPACE (ADR-0012)" {
+    # This verifies the LAYERING, not our code. WinFsp's FSD performs
+    # share-access checking; the core records granted_access for diagnostics
+    # and does not enforce. If this fails, the volume parameters or the create
+    # path are wrong -- the assertion is a check on our wiring.
+    [IO.File]::WriteAllText("$root\t1\shared.txt", "exclusive")
+    $fs = [IO.File]::Open("$root\t1\shared.txt", [IO.FileMode]::Open,
+                          [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    try {
+        $threw = $false
+        try {
+            $fs2 = [IO.File]::Open("$root\t1\shared.txt", [IO.FileMode]::Open,
+                                   [IO.FileAccess]::Read, [IO.FileShare]::Read)
+            $fs2.Dispose()
+        } catch {
+            $threw = $true
+            # ERROR_SHARING_VIOLATION is 32; HRESULT 0x80070020.
+            $code = $_.Exception.HResult -band 0xFFFF
+            if ($code -ne 32) { throw "expected ERROR_SHARING_VIOLATION (32), got $code" }
+        }
+        if (-not $threw) { throw "a second open succeeded against FileShare::None" }
+    } finally {
+        $fs.Dispose()
+    }
+
+    # ...and once the exclusive handle is closed, opening works again.
+    $fs3 = [IO.File]::Open("$root\t1\shared.txt", [IO.FileMode]::Open,
+                           [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    $fs3.Dispose()
+}
+
+Check "a deleted-but-open file stays readable (fs-semantics section 2)" {
+    # The deleted-but-open lifecycle, observed through Windows rather than
+    # through the Vfs trait.
+    [IO.File]::WriteAllText("$root\t1\ghost.txt", "still here")
+    $fs = [IO.File]::Open("$root\t1\ghost.txt", [IO.FileMode]::Open,
+                          [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    try {
+        Remove-Item "$root\t1\ghost.txt" -Force
+        if (Test-Path "$root\t1\ghost.txt") { throw "path lookup still resolves after delete" }
+        $sr = New-Object IO.StreamReader($fs)
+        $content = $sr.ReadToEnd()
+        if ($content -ne "still here") { throw "content lost while deleted-but-open: '$content'" }
+    } finally {
+        $fs.Dispose()
+    }
+    if (Test-Path "$root\t1\ghost.txt") { throw "file reappeared after the last close" }
+}
+
 Check "cleanup leaves the volume usable" {
     Remove-Item "$root\many" -Recurse -Force
     Remove-Item "$root\tree" -Recurse -Force

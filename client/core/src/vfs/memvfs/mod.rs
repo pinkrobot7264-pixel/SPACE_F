@@ -41,8 +41,27 @@ pub struct HandleSlot {
 /// any buffer size.
 #[derive(Clone, Debug)]
 pub struct CursorSlot {
+    /// The directory being enumerated, so a window can be refilled without
+    /// re-resolving the handle.
+    pub dir: NodeId,
+    /// The current window of entries.
+    ///
+    /// **Bounded, not the whole directory.** Snapshotting every child on every
+    /// `dir_open` made enumeration O(N^2): WinFsp issues roughly N/33
+    /// `ReadDirectory` calls for an N-entry directory, and each one cloned all
+    /// N names and `FileInfo`s. At L6 (65,536 entries) that is ~130 million
+    /// clones for a single listing, and because §3.6 serialises everything
+    /// behind one state lock, a listing in progress starves every other
+    /// operation. Observed: a 5,000-entry root took a directory listing past
+    /// three minutes and dropped concurrent file creation to under two per
+    /// second.
     pub entries: Vec<(String, FileInfo)>,
     pub next: usize,
+    /// Exclusive lower bound for the next window: the folded name of the last
+    /// child yielded. `None` means "start at the first child".
+    pub resume: Option<crate::vfs::path::FoldedName>,
+    /// No children remain beyond the current window.
+    pub drained: bool,
 }
 
 pub type NodeTable = GenerationalTable<NodeId, MemNode>;
