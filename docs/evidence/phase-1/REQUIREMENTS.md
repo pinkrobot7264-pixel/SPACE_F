@@ -30,7 +30,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S3-5 | §3.3 | `fs-semantics.md` complete | `docs/protocols/fs-semantics.md` | conformance suite, 11 modules | 206 tests green | PASS |
 | R-S3-6 | §3.3.7 | `VfsPath` rejects every listed form | `vfs/path.rs` | one test per rule, 15 tests | test output | PASS |
 | R-S3-7 | §3.4 | `resource-limits.md`; L1-L10 with config keys | `vfs/limits.rs` | `defaults_match_the_documented_table` | test output | IMPLEMENTING |
-| R-S3-8 | §3.5 | `vfs-invariants.md`; 22 invariants | `vfs/invariants.rs` | `the_invariant_list_matches_the_documented_count` | test output | PASS |
+| R-S3-8 | §3.5 | `vfs-invariants.md`; 22 invariants | `vfs/invariants.rs` | `the_invariant_list_matches_the_documented_count` + `coverage_tests.rs` (5 tests) | every invariant claimed and verified | PASS |
 | R-S3-9 | §3.5 | Checker read-only, non-repairing, deterministic | `memvfs/check.rs` | `checker_is_read_only_*` (3 tests, snapshot cmp) | test output | PASS |
 | R-S3-10 | §3.6 | `concurrency.md`; deadline-bounded lock | `memvfs/imp.rs state()` | `lock_acquisition_is_deadline_bounded` | test output | PASS |
 | R-S3-11 | §3.7 | Checker proven to FIRE for each invariant class | `memvfs/check.rs` | 12 `fires_inv_*` tests | test output | PASS |

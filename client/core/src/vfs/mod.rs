@@ -18,6 +18,7 @@ pub mod invariants;
 pub mod limits;
 pub mod memvfs;
 pub mod path;
+pub mod coverage_tests;
 pub mod properties;
 pub mod types;
 

@@ -51,7 +51,9 @@ fn close_is_exactly_once_per_open<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
 }
 
 fn io_after_close_is_invalid_handle<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
-    step(c.vfs, "io after close", || {
+    // INV-FS-3: a closed handle performs no I/O and no metadata mutation;
+    // every attempt is InvalidHandle.
+    step(c.vfs, "io after close (INV-FS-3)", || {
         c.file_with("closed.txt", b"abc");
         let h = c.open_file("closed.txt").unwrap();
         c.close(h);
@@ -97,8 +99,8 @@ fn io_after_cleanup_before_close_is_invalid_handle<V: Vfs + VfsDiagnostics>(c: &
         let h = c.open_file("cleaned.txt").unwrap();
         c.vfs.cleanup(&cx(), h, CleanupFlags::NONE);
 
-        // Windows sends no further I/O on that file object, so any such call is
-        // a bug or an attack (fs-semantics §1).
+        // INV-FS-3. Windows sends no further I/O on that file object, so any
+        // such call is a bug or an attack (fs-semantics §1).
         let mut buf = [0u8; 4];
         expect_err(
             "read after cleanup",
