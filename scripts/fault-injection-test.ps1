@@ -26,7 +26,7 @@
 param(
     [string]$Drive = "S",
     [string]$Config = ".\config.toml",
-    [string]$Exe = ".\target\debug\space-client.exe",
+    [string]$Exe = ".\target\debug\space-client-fault.exe",
     [string]$Out = "docs\evidence\phase-1\fault-injection.txt"
 )
 
@@ -47,14 +47,34 @@ function Get-TimeoutMs([string]$cfg) {
 
 function Start-Faulted($point, $action, $cfg) {
     $env:SPACE_FAULT = "$point=$action"
+    $errLog = "C:\SPACE\runtime\logs\fault-err.log"
+    Remove-Item $errLog -ErrorAction SilentlyContinue
     $p = Start-Process -PassThru -FilePath $Exe -ArgumentList "--config", $cfg `
         -RedirectStandardOutput "C:\SPACE\runtime\logs\fault-out.log" `
-        -RedirectStandardError  "C:\SPACE\runtime\logs\fault-err.log"
+        -RedirectStandardError  $errLog
+    $up = $false
     for ($i = 0; $i -lt 80; $i++) {
         Start-Sleep -Milliseconds 250
-        if (Test-Path "$root\") { return $p }
+        if (Test-Path "$root\") { $up = $true; break }
     }
-    throw "mount did not appear"
+    if (-not $up) { throw "mount did not appear" }
+
+    # The fault MUST actually be armed. Without the fault-injection feature,
+    # arm_fault_from_env() compiles to an empty function: SPACE_FAULT is
+    # ignored, every callback returns in single-digit milliseconds, and this
+    # script would record a bounded, controlled PASS for a deadline that was
+    # never exercised. The client logs a warning when it arms; require it.
+    $armed = $false
+    for ($i = 0; $i -lt 20; $i++) {
+        $log = Get-Content $errLog -Raw -ErrorAction SilentlyContinue
+        if ($log -and $log -match "FAULT INJECTION ARMED") { $armed = $true; break }
+        Start-Sleep -Milliseconds 250
+    }
+    if (-not $armed) {
+        Stop-Client $p
+        throw "fault '$point=$action' was NOT armed. Build the client with the feature: cargo build -p space-client --features fault-injection"
+    }
+    return $p
 }
 
 function Stop-Client($p) {

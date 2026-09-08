@@ -8,6 +8,20 @@ rust-version.workspace = true
 name = "space-client"
 path = "src/main.rs"
 
+[features]
+# Passthrough so a client BINARY can be built with the fault points compiled in.
+#
+# The feature existed on space-client-core only, which meant the through-the-mount
+# fault tests (§13.3) and the §15.1 shutdown states that need a hung or poisoned
+# filesystem had no binary to drive: `SPACE_FAULT` was read by a function
+# compiled down to `fn arm_fault_from_env() {}`. The scripts would still run --
+# the fault simply never fired, every callback returned in single-digit
+# milliseconds, and the harness recorded a bounded, controlled PASS for a
+# deadline that was never tested.
+#
+# Off by default. CI asserts the release build does not enable it.
+fault-injection = ["space-client-core/fault-injection"]
+
 [build-dependencies]
 cc.workspace = true
 

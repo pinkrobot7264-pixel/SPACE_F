@@ -22,7 +22,7 @@ param(
     [string]$Drive = "S",
     [string]$Config = ".\config.toml",
     [string]$Exe = ".\target\debug\space-client.exe",
-    [string]$FaultExe = ".\target\debug\space-client.exe",
+    [string]$FaultExe = ".\target\debug\space-client-fault.exe",
     [string]$Out = "docs\evidence\phase-1\shutdown-states.txt"
 )
 
@@ -41,14 +41,35 @@ $lines += ""
 function Start-Client([string]$fault) {
     if ($fault) { $env:SPACE_FAULT = $fault } else { Remove-Item Env:\SPACE_FAULT -ErrorAction SilentlyContinue }
     $exe = if ($fault) { $FaultExe } else { $Exe }
+    $errLog = "C:\SPACE\runtime\logs\shutdown-err.log"
+    Remove-Item $errLog -ErrorAction SilentlyContinue
     $p = Start-Process -PassThru -FilePath $exe -ArgumentList "--config", $Config `
         -RedirectStandardOutput "C:\SPACE\runtime\logs\shutdown-out.log" `
-        -RedirectStandardError  "C:\SPACE\runtime\logs\shutdown-err.log"
+        -RedirectStandardError  $errLog
+    $up = $false
     for ($i = 0; $i -lt 80; $i++) {
         Start-Sleep -Milliseconds 250
-        if (Test-Path "$root\") { return $p }
+        if (Test-Path "$root\") { $up = $true; break }
     }
-    throw "mount did not appear"
+    if (-not $up) { throw "mount did not appear" }
+
+    # States 4 and 5 are meaningless if the fault never armed -- a client built
+    # without the feature ignores SPACE_FAULT entirely, and "shutdown with an
+    # operation hung" silently becomes "shutdown with nothing happening", which
+    # passes. Require the armed warning before continuing.
+    if ($fault) {
+        $armed = $false
+        for ($i = 0; $i -lt 20; $i++) {
+            $log = Get-Content $errLog -Raw -ErrorAction SilentlyContinue
+            if ($log -and $log -match "FAULT INJECTION ARMED") { $armed = $true; break }
+            Start-Sleep -Milliseconds 250
+        }
+        if (-not $armed) {
+            taskkill /PID $p.Id /F /T 2>&1 | Out-Null
+            throw "fault '$fault' was NOT armed. Build with: cargo build -p space-client --features fault-injection"
+        }
+    }
+    return $p
 }
 
 function Send-CtrlC($p) {
