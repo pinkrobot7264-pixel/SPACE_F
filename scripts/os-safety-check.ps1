@@ -45,8 +45,16 @@ if ($vols -match [regex]::Escape($mountPoint)) {
   Write-Host "PASS  no stale $mountPoint volume" -ForegroundColor Green
 }
 
-if (Get-Process space-client -ErrorAction SilentlyContinue) {
-  Write-Host "FAIL  space-client still running" -ForegroundColor Red; $fail++
+# Wildcard, not the bare name. Get-Process matches exactly without one, so
+# `Get-Process space-client` does NOT match space-client-fault.exe -- the
+# fault-injection build used by sections 13.3 and 15.1. That is not
+# hypothetical: a hung space-client-fault.exe survived a stopped run, held S:
+# in a state where even Test-Path blocked, and this check would have reported
+# "no orphaned client process" while it was still holding the mount.
+$orphans = @(Get-Process space-client* -ErrorAction SilentlyContinue)
+if ($orphans.Count -gt 0) {
+  Write-Host "FAIL  client process still running: $(($orphans | ForEach-Object { "$($_.ProcessName) (pid $($_.Id))" }) -join ', ')" -ForegroundColor Red
+  $fail++
 } else { Write-Host "PASS  no orphaned client process" -ForegroundColor Green }
 
 if (Test-Path "${Drive}:\") { Write-Host "FAIL  ${Drive}: still present" -ForegroundColor Red; $fail++ }

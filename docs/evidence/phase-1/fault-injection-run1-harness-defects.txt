@@ -1,0 +1,50 @@
+﻿SPACE Phase 1 -- fault injection through a live mount (sections 13.2, 13.3)
+date: 2026-09-08T16:13:10.6508288+02:00
+assertion 1 is measured on the CALLBACK (boundary-log duration_ms), not on the
+application call -- Windows retries, so the application call is retries x deadline.
+
+PASS  read  callbacks=4 slowest=30008ms bound=30500ms
+      application-visible time 68682ms (Windows retried the request 4x; context, not the pass condition)
+PASS  read  the application received a controlled error, not a hang
+FAIL  read  unrelated-op elapsed=40122ms bound=30500ms
+PASS  read  unmount completed after the injected hang
+
+FAIL  write  -- no faulted 'write' callback logged; the fault never fired
+FAIL  write  the application saw success under an injected hang
+PASS  write  unrelated-op elapsed=7394ms while the fault was in flight (section 3.6 confirmed)
+PASS  write  unmount completed after the injected hang
+
+FAIL  open  -- no faulted 'open' callback logged; the fault never fired
+PASS  open  the application received a controlled error, not a hang
+PASS  open  unrelated-op elapsed=13868ms while the fault was in flight (section 3.6 confirmed)
+PASS  open  unmount completed after the injected hang
+
+FAIL  readdir  -- Exception calling "WriteAllText" with "2" argument(s): "An internal error occurred.
+"
+
+FAIL  getinfo  -- mount did not appear
+
+PASS  rename  callbacks=1 slowest=30000ms bound=30500ms
+      application-visible time 34679ms (Windows retried the request 1x; context, not the pass condition)
+PASS  rename  the application received a controlled error, not a hang
+FAIL  rename  unrelated-op elapsed=34804ms bound=30500ms
+PASS  rename  unmount completed after the injected hang
+
+--- bound scales with callback_timeout_ms (1000ms config) ---
+PASS  read @1000ms  callbacks=3 slowest=1009ms bound=1500ms
+      application-visible time 7206ms (Windows retried the request 3x; context, not the pass condition)
+PASS  read @1000ms  the application received a controlled error, not a hang
+FAIL  read @1000ms  unrelated-op elapsed=6968ms bound=1500ms
+PASS  read @1000ms  unmount completed after the injected hang
+
+--- section 13.5 Panic row (ADR-0013 end to end) ---
+FAIL  panic -- read returned success
+PASS  panic -- poisoned filesystem unmounted itself (main thread, ADR-0013a)
+FAIL  panic -- no PANIC line in the log
+
+os-safety-check exit: 0
+
+NOTE: section 13.2 point 3 -- 'Explorer stays responsive' -- is a claim about
+the Windows shell and is NOT covered here. It remains NEEDS HUMAN.
+
+result: 10 FAILURE(S)
