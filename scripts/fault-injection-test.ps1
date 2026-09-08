@@ -22,6 +22,25 @@
 # artefact of fast operations.
 #
 # Requires a client built with --features fault-injection.
+#
+# --------------------------------------------------------------------------
+# WHAT ASSERTION 1 MEASURES, and why it is not the obvious thing
+#
+# Assertion 1 is about the CALLBACK, so it is measured on the callback, from
+# the client's own boundary log (`duration_ms` on the faulted operation).
+#
+# An earlier version timed the application-visible operation instead --
+# stopwatch around `Get-Content` -- and reported FAIL at 60873ms against a
+# 30500ms bound. That was not a deadline defect. Windows RETRIES a request that
+# fails this way, and the log showed each individual callback returning in
+# 30000, 30004, 30006, 30007, 30008 ms: every one inside the bound, several of
+# them per application call. Timing the application measures
+# `retries x deadline` and can never satisfy a per-callback bound.
+#
+# The application-visible time and the retry count are still recorded, as
+# context rather than as the pass condition, because "the application waited a
+# minute" is worth knowing even when every callback behaved.
+# --------------------------------------------------------------------------
 
 param(
     [string]$Drive = "S",
@@ -34,9 +53,12 @@ $ErrorActionPreference = "Continue"
 $root = "${Drive}:"
 $since = Get-Date
 $fail = 0
+$errLog = "C:\SPACE\runtime\logs\fault-err.log"
 $lines = @()
 $lines += "SPACE Phase 1 -- fault injection through a live mount (sections 13.2, 13.3)"
 $lines += "date: $(Get-Date -Format o)"
+$lines += "assertion 1 is measured on the CALLBACK (boundary-log duration_ms), not on the"
+$lines += "application call -- Windows retries, so the application call is retries x deadline."
 $lines += ""
 
 function Get-TimeoutMs([string]$cfg) {
@@ -45,9 +67,17 @@ function Get-TimeoutMs([string]$cfg) {
     return 30000
 }
 
+function Stop-Client($p) {
+    if ($p) { taskkill /PID $p.Id /F /T 2>&1 | Out-Null }
+    for ($i = 0; $i -lt 60; $i++) {
+        Start-Sleep -Milliseconds 250
+        if (-not (Test-Path "$root\")) { break }
+    }
+    Remove-Item Env:\SPACE_FAULT -ErrorAction SilentlyContinue
+}
+
 function Start-Faulted($point, $action, $cfg) {
     $env:SPACE_FAULT = "$point=$action"
-    $errLog = "C:\SPACE\runtime\logs\fault-err.log"
     Remove-Item $errLog -ErrorAction SilentlyContinue
     $p = Start-Process -PassThru -FilePath $Exe -ArgumentList "--config", $cfg `
         -RedirectStandardOutput "C:\SPACE\runtime\logs\fault-out.log" `
@@ -77,58 +107,97 @@ function Start-Faulted($point, $action, $cfg) {
     return $p
 }
 
-function Stop-Client($p) {
-    if ($p) { taskkill /PID $p.Id /F /T 2>&1 | Out-Null }
-    for ($i = 0; $i -lt 60; $i++) {
-        Start-Sleep -Milliseconds 250
-        if (-not (Test-Path "$root\")) { break }
+# Every faulted-callback duration the log recorded for $op, in milliseconds.
+function Get-CallbackDurations($op) {
+    $d = @()
+    foreach ($line in (Get-Content $errLog -ErrorAction SilentlyContinue)) {
+        if ($line -notmatch '"error_code":"OperationTimeout"') { continue }
+        try { $j = $line | ConvertFrom-Json } catch { continue }
+        if ($j.operation -eq $op -and $null -ne $j.duration_ms) { $d += [int]$j.duration_ms }
     }
-    Remove-Item Env:\SPACE_FAULT -ErrorAction SilentlyContinue
+    return $d
 }
 
-# One hang case: arm `point`, run `trigger`, assert bounded + errored, then
-# assert an UNRELATED operation is also bounded (the section 3.6 prediction).
-function Test-Hang($point, $label, [scriptblock]$seed, [scriptblock]$trigger, $cfg) {
+# One hang case.
+#
+# The trigger runs ASYNCHRONOUSLY so the unrelated operation can be timed while
+# the fault is genuinely in flight. Timing it after the trigger returns -- which
+# an earlier version did -- measures a filesystem with nothing hung in it, and
+# duly reported "bounded at 1257ms" without testing the section 3.6 claim at all.
+function Test-Hang($point, $op, $label, $seedCode, $triggerCode, $cfg) {
     $timeout = Get-TimeoutMs $cfg
     Write-Host "--- $label  (point=$point, timeout=${timeout}ms) ---" -ForegroundColor Cyan
     $p = $null
     try {
         $p = Start-Faulted $point "hang" $cfg
+        if ($seedCode) { Invoke-Expression $seedCode }
 
-        # Seed BEFORE the fault bites where the fault point would block setup.
-        if ($seed) { & $seed }
+        $job = Start-Job -ScriptBlock {
+            param($r, $code)
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            $threw = $false
+            try { Invoke-Expression $code } catch { $threw = $true }
+            $sw.Stop()
+            [pscustomobject]@{ Ms = $sw.ElapsedMilliseconds; Threw = $threw }
+        } -ArgumentList $root, $triggerCode
 
-        $sw = [Diagnostics.Stopwatch]::StartNew()
-        $threw = $false
-        try { & $trigger } catch { $threw = $true }
-        $sw.Stop()
-        $elapsed = $sw.ElapsedMilliseconds
+        # Let the callback actually enter the hang before measuring anything.
+        Start-Sleep -Seconds 2
 
-        if ($elapsed -gt ($timeout + 500)) {
-            Write-Host "FAIL  $label : ${elapsed}ms > ${timeout}+500" -ForegroundColor Red
-            $script:lines += "FAIL  $label  elapsed=${elapsed}ms bound=$($timeout+500)ms"
-            $script:fail++
-        } else {
-            Write-Host "PASS  $label : bounded at ${elapsed}ms (threw=$threw)" -ForegroundColor Green
-            $script:lines += "PASS  $label  elapsed=${elapsed}ms bound=$($timeout+500)ms threw=$threw"
-        }
-
-        # Section 3.6 point 4: an UNRELATED operation is bounded too, because
-        # the hung callback holds the single state lock. Documented Phase 1
-        # behaviour, not a defect; Phase 10 owns fixing it.
+        # Assertion 4, section 3.6: an UNRELATED operation while the fault is in
+        # flight. The coarse guard strategy means it waits on the hung callback,
+        # so the bound it must respect is the same deadline -- it must not hang
+        # forever. Documented Phase 1 behaviour, not a defect; Phase 10 owns it.
         $sw2 = [Diagnostics.Stopwatch]::StartNew()
         try { Get-ChildItem "$root\" -ErrorAction SilentlyContinue | Out-Null } catch {}
         $sw2.Stop()
-        if ($sw2.ElapsedMilliseconds -gt ($timeout + 500)) {
-            Write-Host "FAIL  $label : unrelated op ${$sw2.ElapsedMilliseconds}ms unbounded" -ForegroundColor Red
-            $script:lines += "FAIL  $label  unrelated-op elapsed=$($sw2.ElapsedMilliseconds)ms"
+        $unrelated = $sw2.ElapsedMilliseconds
+
+        $r = Receive-Job -Job $job -Wait -ErrorAction SilentlyContinue
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        $appMs = if ($r) { $r.Ms } else { -1 }
+        $threw = if ($r) { $r.Threw } else { $false }
+
+        # ---- assertion 1, on the callback ----
+        $durations = Get-CallbackDurations $op
+        if ($durations.Count -eq 0) {
+            Write-Host "FAIL  $label : no faulted '$op' callback in the log -- the fault never fired" -ForegroundColor Red
+            $script:lines += "FAIL  $label  -- no faulted '$op' callback logged; the fault never fired"
             $script:fail++
         } else {
-            Write-Host "PASS  $label : unrelated op bounded at $($sw2.ElapsedMilliseconds)ms" -ForegroundColor Green
-            $script:lines += "PASS  $label  unrelated-op elapsed=$($sw2.ElapsedMilliseconds)ms (section 3.6 confirmed)"
+            $max = ($durations | Measure-Object -Maximum).Maximum
+            if ($max -gt ($timeout + 500)) {
+                Write-Host "FAIL  $label : slowest callback ${max}ms > $($timeout+500)ms" -ForegroundColor Red
+                $script:lines += "FAIL  $label  slowest callback=${max}ms bound=$($timeout+500)ms over $($durations.Count) callback(s)"
+                $script:fail++
+            } else {
+                Write-Host "PASS  $label : $($durations.Count) callback(s), slowest ${max}ms, bound $($timeout+500)ms" -ForegroundColor Green
+                $script:lines += "PASS  $label  callbacks=$($durations.Count) slowest=${max}ms bound=$($timeout+500)ms"
+                $script:lines += "      application-visible time ${appMs}ms (Windows retried the request $($durations.Count)x; context, not the pass condition)"
+            }
         }
 
-        # Point 5: unmount still succeeds.
+        # ---- assertion 2, a controlled error ----
+        if ($threw) {
+            Write-Host "PASS  $label : application received a controlled error" -ForegroundColor Green
+            $script:lines += "PASS  $label  the application received a controlled error, not a hang"
+        } else {
+            Write-Host "FAIL  $label : application saw success under an injected hang" -ForegroundColor Red
+            $script:lines += "FAIL  $label  the application saw success under an injected hang"
+            $script:fail++
+        }
+
+        # ---- assertion 4 ----
+        if ($unrelated -gt ($timeout + 500)) {
+            Write-Host "FAIL  $label : unrelated op ${unrelated}ms exceeded the bound" -ForegroundColor Red
+            $script:lines += "FAIL  $label  unrelated-op elapsed=${unrelated}ms bound=$($timeout+500)ms"
+            $script:fail++
+        } else {
+            Write-Host "PASS  $label : unrelated op bounded at ${unrelated}ms (while the fault was in flight)" -ForegroundColor Green
+            $script:lines += "PASS  $label  unrelated-op elapsed=${unrelated}ms while the fault was in flight (section 3.6 confirmed)"
+        }
+
+        # ---- assertion 5 ----
         Stop-Client $p; $p = $null
         if (Test-Path "$root\") {
             Write-Host "FAIL  $label : unmount did not complete" -ForegroundColor Red
@@ -143,49 +212,50 @@ function Test-Hang($point, $label, [scriptblock]$seed, [scriptblock]$trigger, $c
         $script:fail++
     } finally {
         Stop-Client $p
+        $script:lines += ""
     }
 }
 
 Write-Host "=== fault injection through a live mount ===" -ForegroundColor Cyan
 
 # ---- section 13.3: repeat the hang for all six registered operations ----
-Test-Hang "winfsp_pre_read" "read" `
-    { [IO.File]::WriteAllText("$root\h.txt", "payload"); New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { Get-Content "$root\h.txt" -ErrorAction Stop | Out-Null } $Config
+# Trigger/seed are strings so they can be evaluated inside a background job,
+# where `$r` is the mount root.
+Test-Hang "winfsp_pre_read" "read" "read" `
+    '[IO.File]::WriteAllText("$root\h.txt", "payload")' `
+    'Get-Content "$r\h.txt" -ErrorAction Stop | Out-Null' $Config
 
-Test-Hang "winfsp_pre_write" "write" `
-    { New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { [IO.File]::WriteAllText("$root\w.txt", "payload") } $Config
+Test-Hang "winfsp_pre_write" "write" "write" `
+    $null `
+    '[IO.File]::WriteAllText("$r\w.txt", "payload")' $Config
 
-Test-Hang "winfsp_pre_open" "open" `
-    { New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { [IO.File]::ReadAllText("$root\nonexistent-open.txt") } $Config
+Test-Hang "winfsp_pre_open" "open" "open" `
+    '[IO.File]::WriteAllText("$root\o.txt", "payload")' `
+    '[IO.File]::ReadAllText("$r\o.txt")' $Config
 
-Test-Hang "winfsp_pre_readdir" "readdir" `
-    { New-Item -ItemType Directory -Path "$root\rd" -Force | Out-Null; [IO.File]::WriteAllText("$root\rd\a.txt","x"); New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { Get-ChildItem "$root\rd" -ErrorAction Stop | Out-Null } $Config
+Test-Hang "winfsp_pre_readdir" "dir_open" "readdir" `
+    'New-Item -ItemType Directory -Path "$root\rd" -Force | Out-Null; [IO.File]::WriteAllText("$root\rd\a.txt","x")' `
+    'Get-ChildItem "$r\rd" -ErrorAction Stop | Out-Null' $Config
 
-Test-Hang "winfsp_pre_getinfo" "getinfo" `
-    { [IO.File]::WriteAllText("$root\gi.txt", "payload"); New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { (Get-Item "$root\gi.txt" -ErrorAction Stop).Length | Out-Null } $Config
+Test-Hang "winfsp_pre_getinfo" "get_file_info" "getinfo" `
+    '[IO.File]::WriteAllText("$root\gi.txt", "payload")' `
+    '(Get-Item "$r\gi.txt" -ErrorAction Stop).Length | Out-Null' $Config
 
-Test-Hang "winfsp_pre_rename" "rename" `
-    { [IO.File]::WriteAllText("$root\rn.txt", "payload"); New-Item -ItemType Directory -Path "$root\other" -Force | Out-Null } `
-    { Rename-Item "$root\rn.txt" "rn2.txt" -ErrorAction Stop } $Config
+Test-Hang "winfsp_pre_rename" "rename" "rename" `
+    '[IO.File]::WriteAllText("$root\rn.txt", "payload")' `
+    'Rename-Item "$r\rn.txt" "rn2.txt" -ErrorAction Stop' $Config
 
 # ---- section 13.3: the bound SCALES with configuration -------------------
 # "proof that the deadline is real rather than an artefact of fast operations"
 $fastCfg = Join-Path $env:TEMP "space-fast-timeout.toml"
 (Get-Content $Config -Raw) -replace 'callback_timeout_ms\s*=\s*\d+', 'callback_timeout_ms = 1000' |
     Out-File -Encoding utf8 $fastCfg
-$lines += ""
 $lines += "--- bound scales with callback_timeout_ms (1000ms config) ---"
-Test-Hang "winfsp_pre_read" "read @1000ms" `
-    { [IO.File]::WriteAllText("$root\h.txt", "payload") } `
-    { Get-Content "$root\h.txt" -ErrorAction Stop | Out-Null } $fastCfg
+Test-Hang "winfsp_pre_read" "read" "read @1000ms" `
+    '[IO.File]::WriteAllText("$root\h.txt", "payload")' `
+    'Get-Content "$r\h.txt" -ErrorAction Stop | Out-Null' $fastCfg
 
 # ---- section 13.5: the Panic row, run LAST (it ends the mount) -----------
-$lines += ""
 $lines += "--- section 13.5 Panic row (ADR-0013 end to end) ---"
 $p = $null
 try {
@@ -214,7 +284,7 @@ try {
         $lines += "FAIL  panic -- poisoned filesystem did not unmount"; $fail++
     }
 
-    $log = Get-Content "C:\SPACE\runtime\logs\fault-err.log" -Raw -ErrorAction SilentlyContinue
+    $log = Get-Content $errLog -Raw -ErrorAction SilentlyContinue
     if ($log -and $log -match "PANIC at FFI boundary") {
         Write-Host "PASS  panic: logged with request_id" -ForegroundColor Green
         $lines += "PASS  panic -- 'PANIC at FFI boundary' logged with request_id"
