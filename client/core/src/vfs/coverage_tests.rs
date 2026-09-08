@@ -46,34 +46,118 @@ const CONF_RENAME: &str = include_str!("../conformance/rename_delete.rs");
 
 fn claims() -> Vec<Claim> {
     vec![
-        Claim { id: "INV-ID-1", kind: "Conformance + Property", evidence: &[CONF_HANDLES, PROPERTIES_RS] },
-        Claim { id: "INV-ID-2", kind: "Checker + Conformance",  evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_HANDLES] },
-        Claim { id: "INV-ID-3", kind: "Conformance + Fuzz",     evidence: &[CONF_HANDLES, CONF_LIFECYCLE, TABLE_RS] },
-        Claim { id: "INV-ID-4", kind: "Checker + Conformance",  evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_HANDLES] },
-        Claim { id: "INV-ID-5", kind: "CodeRule + Conformance", evidence: &[IDS_RS, CONF_HANDLES] },
-
-        Claim { id: "INV-NS-1", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-NS-2", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-NS-3", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-NS-4", kind: "Checker + Conformance",  evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME] },
-        Claim { id: "INV-NS-5", kind: "Checker + Conformance",  evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME] },
+        Claim {
+            id: "INV-ID-1",
+            kind: "Conformance + Property",
+            evidence: &[CONF_HANDLES, PROPERTIES_RS],
+        },
+        Claim {
+            id: "INV-ID-2",
+            kind: "Checker + Conformance",
+            evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_HANDLES],
+        },
+        Claim {
+            id: "INV-ID-3",
+            kind: "Conformance + Fuzz",
+            evidence: &[CONF_HANDLES, CONF_LIFECYCLE, TABLE_RS],
+        },
+        Claim {
+            id: "INV-ID-4",
+            kind: "Checker + Conformance",
+            evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_HANDLES],
+        },
+        Claim {
+            id: "INV-ID-5",
+            kind: "CodeRule + Conformance",
+            evidence: &[IDS_RS, CONF_HANDLES],
+        },
+        Claim {
+            id: "INV-NS-1",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-NS-2",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-NS-3",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-NS-4",
+            kind: "Checker + Conformance",
+            evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME],
+        },
+        Claim {
+            id: "INV-NS-5",
+            kind: "Checker + Conformance",
+            evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME],
+        },
         // The other half of INV-NS-6 is ProcMon evidence (§16.4) and cannot be
         // asserted from inside this process by construction.
-        Claim { id: "INV-NS-6", kind: "Conformance + ProcMon",  evidence: &[CONF_NAMING] },
-
-        Claim { id: "INV-FS-1", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-FS-2", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-FS-3", kind: "Conformance",            evidence: &[CONF_LIFECYCLE] },
-        Claim { id: "INV-FS-4", kind: "Checker + Conformance",  evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME] },
-        Claim { id: "INV-FS-5", kind: "Conformance",            evidence: &[CONF_INVARIANTS] },
-
-        Claim { id: "INV-DIR-1", kind: "Conformance + Property", evidence: &[CONF_DIRECTORY, PROPERTIES_RS] },
-        Claim { id: "INV-DIR-2", kind: "Conformance + Property", evidence: &[CONF_DIRECTORY, PROPERTIES_RS] },
-        Claim { id: "INV-DIR-3", kind: "Conformance + Fuzz",     evidence: &[CONF_DIRECTORY] },
-
-        Claim { id: "INV-RES-1", kind: "Checker",                evidence: &[CHECK_RS, MEMVFS_TESTS] },
-        Claim { id: "INV-RES-2", kind: "Conformance",            evidence: &[CONF_BOUNDARIES, CONF_INVARIANTS] },
-        Claim { id: "INV-RES-3", kind: "Conformance",            evidence: &[CONF_BOUNDARIES] },
+        Claim {
+            id: "INV-NS-6",
+            kind: "Conformance + ProcMon",
+            evidence: &[CONF_NAMING],
+        },
+        Claim {
+            id: "INV-FS-1",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-FS-2",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-FS-3",
+            kind: "Conformance",
+            evidence: &[CONF_LIFECYCLE],
+        },
+        Claim {
+            id: "INV-FS-4",
+            kind: "Checker + Conformance",
+            evidence: &[CHECK_RS, MEMVFS_TESTS, CONF_RENAME],
+        },
+        Claim {
+            id: "INV-FS-5",
+            kind: "Conformance",
+            evidence: &[CONF_INVARIANTS],
+        },
+        Claim {
+            id: "INV-DIR-1",
+            kind: "Conformance + Property",
+            evidence: &[CONF_DIRECTORY, PROPERTIES_RS],
+        },
+        Claim {
+            id: "INV-DIR-2",
+            kind: "Conformance + Property",
+            evidence: &[CONF_DIRECTORY, PROPERTIES_RS],
+        },
+        Claim {
+            id: "INV-DIR-3",
+            kind: "Conformance + Fuzz",
+            evidence: &[CONF_DIRECTORY],
+        },
+        Claim {
+            id: "INV-RES-1",
+            kind: "Checker",
+            evidence: &[CHECK_RS, MEMVFS_TESTS],
+        },
+        Claim {
+            id: "INV-RES-2",
+            kind: "Conformance",
+            evidence: &[CONF_BOUNDARIES, CONF_INVARIANTS],
+        },
+        Claim {
+            id: "INV-RES-3",
+            kind: "Conformance",
+            evidence: &[CONF_BOUNDARIES],
+        },
     ]
 }
 
@@ -140,7 +224,8 @@ fn the_checker_branches_are_exactly_the_ones_claimed_as_checker() {
             || collapsed.contains(&format!("viol(\"{}\"", c.id));
         let claimed_checker = c.kind.contains("Checker");
         assert_eq!(
-            in_checker, claimed_checker,
+            in_checker,
+            claimed_checker,
             "{}: check.rs {} a branch for it, but the claim says {}",
             c.id,
             if in_checker { "has" } else { "has no" },

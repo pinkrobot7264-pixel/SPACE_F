@@ -23,8 +23,8 @@ use contracts::{
 
 pub mod conformance;
 pub mod ffi;
-pub mod time;
 pub mod startup;
+pub mod time;
 pub mod vfs;
 
 const REQUEST_ID_HEADER: &str = "x-request-id";

@@ -31,7 +31,10 @@ fn the_checker_passes_on_a_populated_tree<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         let d = c.create_dir("tree\\b");
         c.close(d);
         for i in 0..10 {
-            c.file_with(&format!("tree\\a\\f{i}.txt"), format!("content {i}").as_bytes());
+            c.file_with(
+                &format!("tree\\a\\f{i}.txt"),
+                format!("content {i}").as_bytes(),
+            );
         }
         c.vfs.check_invariants().expect("populated tree");
     });
@@ -78,12 +81,8 @@ fn inv_res_2_limits_never_panic<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
             c.vfs
                 .write(&cx(), h, u64::MAX - 10, &[0u8; 4096], WriteMode::NORMAL)
                 .map(|_| ()),
-            c.vfs
-                .set_file_size(&cx(), h, u64::MAX, false)
-                .map(|_| ()),
-            c.vfs
-                .set_file_size(&cx(), h, u64::MAX, true)
-                .map(|_| ()),
+            c.vfs.set_file_size(&cx(), h, u64::MAX, false).map(|_| ()),
+            c.vfs.set_file_size(&cx(), h, u64::MAX, true).map(|_| ()),
             c.raw(&format!("\\{}", "x".repeat(100_000))).map(|_| ()),
         ];
         for a in attempts {
@@ -125,9 +124,15 @@ fn a_long_mixed_sequence_preserves_every_invariant<V: Vfs + VfsDiagnostics>(c: &
 
         step(c.vfs, &format!("mixed round {round} write"), || {
             let h = c.open_file(&a).unwrap();
-            c.vfs.write(&cx(), h, 100, b"far out", WriteMode::NORMAL).unwrap();
-            c.vfs.write(&cx(), h, 0, b"OVER", WriteMode::NORMAL).unwrap();
-            c.vfs.write(&cx(), h, 0, b"append", WriteMode::APPEND).unwrap();
+            c.vfs
+                .write(&cx(), h, 100, b"far out", WriteMode::NORMAL)
+                .unwrap();
+            c.vfs
+                .write(&cx(), h, 0, b"OVER", WriteMode::NORMAL)
+                .unwrap();
+            c.vfs
+                .write(&cx(), h, 0, b"append", WriteMode::APPEND)
+                .unwrap();
             c.vfs.set_file_size(&cx(), h, 50, false).unwrap();
             c.close(h);
         });

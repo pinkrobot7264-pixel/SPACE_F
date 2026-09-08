@@ -148,10 +148,11 @@ impl<K: GenId, T> GenerationalTable<K, T> {
 
     /// Iterate live values. Read-only: used by the invariant checker.
     pub fn iter(&self) -> impl Iterator<Item = (K, &T)> {
-        self.slots
-            .iter()
-            .enumerate()
-            .filter_map(|(i, s)| s.value.as_ref().map(|v| (K::from_parts(i as u32, s.generation), v)))
+        self.slots.iter().enumerate().filter_map(|(i, s)| {
+            s.value
+                .as_ref()
+                .map(|v| (K::from_parts(i as u32, s.generation), v))
+        })
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (K, &mut T)> {
@@ -334,9 +335,17 @@ mod tests {
         assert_eq!(err.code, ErrorCode::ResourceExhausted);
 
         assert_eq!(t.live_count(), live_before, "live count changed on failure");
-        assert_eq!(t.capacity_used(), cap_before, "a slot was pushed on failure");
+        assert_eq!(
+            t.capacity_used(),
+            cap_before,
+            "a slot was pushed on failure"
+        );
         for (i, id) in ids.iter().enumerate() {
-            assert_eq!(*t.resolve(*id).unwrap(), i as u32, "existing entry disturbed");
+            assert_eq!(
+                *t.resolve(*id).unwrap(),
+                i as u32,
+                "existing entry disturbed"
+            );
         }
     }
 

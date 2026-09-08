@@ -98,7 +98,11 @@ fn l4_single_io<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         );
 
         c.close(h);
-        assert_eq!(file_state(c, "l4.bin"), before, "L4 failure mutated the file");
+        assert_eq!(
+            file_state(c, "l4.bin"),
+            before,
+            "L4 failure mutated the file"
+        );
     });
 }
 

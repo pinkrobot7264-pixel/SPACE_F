@@ -38,7 +38,12 @@ pub struct MemNode {
 }
 
 impl MemNode {
-    pub fn new_dir(name: impl Into<String>, parent: Option<NodeId>, index_number: u64, now: u64) -> Self {
+    pub fn new_dir(
+        name: impl Into<String>,
+        parent: Option<NodeId>,
+        index_number: u64,
+        now: u64,
+    ) -> Self {
         Self {
             name: name.into(),
             is_dir: true,

@@ -29,7 +29,10 @@ fn wstr_accepts_valid_ascii() {
 fn wstr_accepts_a_valid_surrogate_pair() {
     // U+1F600, which is a surrogate pair in UTF-16.
     let w = wide("\\emoji-\u{1F600}.txt");
-    assert_eq!(unsafe { wstr(w.as_ptr()) }.unwrap(), "\\emoji-\u{1F600}.txt");
+    assert_eq!(
+        unsafe { wstr(w.as_ptr()) }.unwrap(),
+        "\\emoji-\u{1F600}.txt"
+    );
 }
 
 #[test]
@@ -94,9 +97,8 @@ fn a_null_out_handle_is_invalid_parameter_and_never_dereferenced() {
 
     // ...and the same for out_info.
     let mut handle: SpaceHandle = 0;
-    let status = unsafe {
-        space_core_create(path.as_ptr(), 0, 0, 0, 0, &mut handle, ptr::null_mut())
-    };
+    let status =
+        unsafe { space_core_create(path.as_ptr(), 0, 0, 0, 0, &mut handle, ptr::null_mut()) };
     assert_eq!(status, STATUS_INVALID_PARAMETER);
 
     stop_test_core();
@@ -121,9 +123,7 @@ fn every_out_pointer_is_checked() {
     );
     let mut n: u32 = 0;
     assert_eq!(
-        unsafe {
-            space_core_write(1, ptr::null(), 0, 0, 0, 0, &mut n, ptr::null_mut())
-        },
+        unsafe { space_core_write(1, ptr::null(), 0, 0, 0, 0, &mut n, ptr::null_mut()) },
         STATUS_INVALID_PARAMETER
     );
     assert_eq!(
@@ -146,8 +146,7 @@ fn a_null_path_is_rejected_without_dereferencing() {
 
     let mut handle: SpaceHandle = 0;
     let mut info = SpaceFileInfo::default();
-    let status =
-        unsafe { space_core_create(ptr::null(), 0, 0, 0, 0, &mut handle, &mut info) };
+    let status = unsafe { space_core_create(ptr::null(), 0, 0, 0, 0, &mut handle, &mut info) };
     assert_eq!(status, STATUS_OBJECT_NAME_INVALID);
 
     stop_test_core();
@@ -221,8 +220,14 @@ fn volume_info_crosses_the_boundary() {
     let _g = serial();
     start_test_core();
     let mut vi = SpaceVolumeInfo::default();
-    assert_eq!(unsafe { space_core_get_volume_info(&mut vi) }, STATUS_SUCCESS);
-    assert!(vi.free_size <= vi.total_size, "free_size must not exceed total_size");
+    assert_eq!(
+        unsafe { space_core_get_volume_info(&mut vi) },
+        STATUS_SUCCESS
+    );
+    assert!(
+        vi.free_size <= vi.total_size,
+        "free_size must not exceed total_size"
+    );
     assert!(vi.total_size > 0);
     stop_test_core();
 }
@@ -310,9 +315,8 @@ fn a_length_above_l4_is_rejected_before_any_allocation() {
     assert_eq!(got, 0);
 
     let mut winfo = SpaceFileInfo::default();
-    let status = unsafe {
-        space_core_write(h, ptr::null(), 0, u32::MAX, 0, 0, &mut got, &mut winfo)
-    };
+    let status =
+        unsafe { space_core_write(h, ptr::null(), 0, u32::MAX, 0, 0, &mut got, &mut winfo) };
     assert_eq!(status, STATUS_INVALID_PARAMETER);
 
     unsafe { space_core_cleanup(h, ptr::null(), 0) };
@@ -496,7 +500,9 @@ fn poisoning_from_a_dispatcher_thread_does_not_deadlock() {
 
     let started = std::time::Instant::now();
     let t = std::thread::spawn(guarded_panic);
-    let status = t.join().expect("the poisoning thread must not itself panic");
+    let status = t
+        .join()
+        .expect("the poisoning thread must not itself panic");
     let elapsed = started.elapsed();
 
     assert_eq!(status, STATUS_INTERNAL_ERROR);
@@ -560,7 +566,10 @@ fn the_panic_message_and_request_id_reach_the_log() {
         out.contains("request_id"),
         "the request_id was not carried into the panic log line: {out:?}"
     );
-    assert!(out.contains("ERROR"), "the panic must log at error level: {out:?}");
+    assert!(
+        out.contains("ERROR"),
+        "the panic must log at error level: {out:?}"
+    );
 
     stop_test_core();
 }
@@ -609,7 +618,10 @@ fn no_core_path_can_return_network_timeout() {
         ("ffi/mod.rs", include_str!("mod.rs")),
         ("vfs/memvfs/imp.rs", include_str!("../vfs/memvfs/imp.rs")),
         ("vfs/path.rs", include_str!("../vfs/path.rs")),
-        ("vfs/memvfs/table.rs", include_str!("../vfs/memvfs/table.rs")),
+        (
+            "vfs/memvfs/table.rs",
+            include_str!("../vfs/memvfs/table.rs"),
+        ),
         ("vfs/mod.rs", include_str!("../vfs/mod.rs")),
     ] {
         assert!(

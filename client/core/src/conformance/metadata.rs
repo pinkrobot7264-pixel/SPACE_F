@@ -87,7 +87,9 @@ fn write_sets_written_and_changed<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         bump(c.vfs, h, 1_000_000);
         let before = c.vfs.file_info(&cx(), h).unwrap();
 
-        c.vfs.write(&cx(), h, 0, b"more", WriteMode::NORMAL).unwrap();
+        c.vfs
+            .write(&cx(), h, 0, b"more", WriteMode::NORMAL)
+            .unwrap();
         let after = c.vfs.file_info(&cx(), h).unwrap();
 
         assert!(after.last_write_time > before.last_write_time);

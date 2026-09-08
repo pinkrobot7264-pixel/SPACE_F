@@ -43,11 +43,11 @@ pub mod security;
 pub mod types;
 
 #[cfg(test)]
-pub mod test_support;
-#[cfg(test)]
 mod fault_tests;
 #[cfg(test)]
 mod log_tests;
+#[cfg(test)]
+pub mod test_support;
 #[cfg(test)]
 mod tests;
 
@@ -95,9 +95,7 @@ fn callback_deadline() -> Duration {
 
 /// The core, or `InternalError` if the filesystem is not running.
 fn require_core() -> Result<Arc<Core>, SpaceError> {
-    core().ok_or_else(|| {
-        SpaceError::new(ErrorCode::InternalError, "space_core_start has not run")
-    })
+    core().ok_or_else(|| SpaceError::new(ErrorCode::InternalError, "space_core_start has not run"))
 }
 
 // ---------------------------------------------------------------------------
@@ -305,9 +303,7 @@ fn apply_fault(op: &'static str, cx: &OpCtx) -> Result<(), SpaceError> {
     match faults::fault_point(point) {
         faults::FaultAction::None => Ok(()),
 
-        faults::FaultAction::Fail(code) => {
-            Err(SpaceError::new(code, "injected failure"))
-        }
+        faults::FaultAction::Fail(code) => Err(SpaceError::new(code, "injected failure")),
 
         // §13.4's near-miss: a delay just under the deadline must still
         // succeed, so this sleeps and then proceeds rather than failing.
@@ -972,11 +968,7 @@ pub unsafe extern "C" fn space_core_get_security_by_name(
                 "security descriptor buffer too small",
             ));
         }
-        std::ptr::copy_nonoverlapping(
-            core.security_descriptor.as_ptr(),
-            sd_buf as *mut u8,
-            needed,
-        );
+        std::ptr::copy_nonoverlapping(core.security_descriptor.as_ptr(), sd_buf as *mut u8, needed);
         Ok(())
     })
 }

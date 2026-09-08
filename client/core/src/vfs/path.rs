@@ -269,10 +269,7 @@ pub fn validate_component(c: &str, limits: &PathLimits) -> Result<(), SpaceError
 
     // Reserved device names, with or without an extension.
     let stem = c.split('.').next().unwrap_or(c);
-    if RESERVED_NAMES
-        .iter()
-        .any(|r| r.eq_ignore_ascii_case(stem))
-    {
+    if RESERVED_NAMES.iter().any(|r| r.eq_ignore_ascii_case(stem)) {
         return Err(invalid_name(format!("reserved device name: {c}")));
     }
 
@@ -397,8 +394,18 @@ mod tests {
     #[test]
     fn rejects_reserved_device_names_with_or_without_extension() {
         for bad in [
-            "\\CON", "\\con", "\\PRN", "\\AUX", "\\NUL", "\\COM1", "\\COM9", "\\LPT1", "\\LPT9",
-            "\\CON.txt", "\\nul.log", "\\dir\\COM3.dat",
+            "\\CON",
+            "\\con",
+            "\\PRN",
+            "\\AUX",
+            "\\NUL",
+            "\\COM1",
+            "\\COM9",
+            "\\LPT1",
+            "\\LPT9",
+            "\\CON.txt",
+            "\\nul.log",
+            "\\dir\\COM3.dat",
         ] {
             assert_eq!(
                 VfsPath::parse(bad).unwrap_err().code,
@@ -425,9 +432,7 @@ mod tests {
 
     #[test]
     fn rejects_windows_forbidden_characters() {
-        for bad in [
-            "\\a<b", "\\a>b", "\\a\"b", "\\a|b", "\\a?b", "\\a*b",
-        ] {
+        for bad in ["\\a<b", "\\a>b", "\\a\"b", "\\a|b", "\\a?b", "\\a*b"] {
             assert_eq!(
                 VfsPath::parse(bad).unwrap_err().code,
                 ErrorCode::ObjectNameInvalid,
@@ -593,7 +598,8 @@ mod tests {
 
     #[test]
     fn join_enforces_l3() {
-        let deep = VfsPath::parse(&(0..L.max_path_depth).map(|_| "\\a").collect::<String>()).unwrap();
+        let deep =
+            VfsPath::parse(&(0..L.max_path_depth).map(|_| "\\a").collect::<String>()).unwrap();
         assert_eq!(deep.join("b", L).unwrap_err().code, ErrorCode::NameTooLong);
     }
 }

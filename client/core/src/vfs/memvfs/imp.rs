@@ -453,7 +453,13 @@ impl Vfs for MemVfs {
         let node = if is_dir {
             MemNode::new_dir(name.clone(), Some(parent), index_number, now)
         } else {
-            MemNode::new_file(name.clone(), Some(parent), index_number, now, o.file_attributes)
+            MemNode::new_file(
+                name.clone(),
+                Some(parent),
+                index_number,
+                now,
+                o.file_attributes,
+            )
         };
 
         let id = s.nodes.alloc(node)?;
@@ -541,7 +547,11 @@ impl Vfs for MemVfs {
         let now = now_filetime();
         let n = s.node_mut(id)?;
         n.data.clear();
-        n.explicit_allocation = if alloc > 0 { Some(allocation_size_for(alloc)) } else { None };
+        n.explicit_allocation = if alloc > 0 {
+            Some(allocation_size_for(alloc))
+        } else {
+            None
+        };
         n.attributes = if replace_attrs {
             (attrs & !FILE_ATTRIBUTE_DIRECTORY) | FILE_ATTRIBUTE_ARCHIVE
         } else {
@@ -560,7 +570,9 @@ impl Vfs for MemVfs {
         // on; the operation simply does not happen.
         let Ok(mut s) = self.state(cx) else { return };
 
-        let Ok(slot) = s.handles.resolve(h) else { return };
+        let Ok(slot) = s.handles.resolve(h) else {
+            return;
+        };
         if slot.cleaned_up {
             return;
         }
@@ -688,9 +700,9 @@ impl Vfs for MemVfs {
             return Ok((0, s.node(id)?.info()));
         }
 
-        let end = offset
-            .checked_add(buf.len() as u64)
-            .ok_or_else(|| SpaceError::new(ErrorCode::InvalidParameter, "offset+length overflow"))?;
+        let end = offset.checked_add(buf.len() as u64).ok_or_else(|| {
+            SpaceError::new(ErrorCode::InvalidParameter, "offset+length overflow")
+        })?;
 
         // ConstrainedIo: the file must not grow. From the cache manager's
         // write-behind path; ignoring it produces files that grow during a copy.
@@ -1076,7 +1088,6 @@ impl Vfs for MemVfs {
         VfsPath::parse_with(s, &self.cfg.path_limits)
     }
 }
-
 
 /// How many entries one enumeration window holds.
 ///

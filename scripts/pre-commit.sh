@@ -36,3 +36,19 @@ if [ $? -ne 0 ]; then
     echo "COMMIT BLOCKED: gitleaks found a potential secret."
     exit 1
 fi
+
+# cargo fmt --check, same command CI runs as its first gated step.
+#
+# This gate exists because formatting drift once reached CI and FAILED the
+# windows job at step 7, which skipped Lint, Build, Test, Release build, the
+# C++ adapter build and the secret scan -- so a whole push produced no
+# evidence about any of them. A trivial defect that hides six real checks is
+# worth blocking locally.
+if command -v cargo >/dev/null 2>&1; then
+    if ! cargo fmt --all -- --check >/dev/null 2>&1; then
+        echo "COMMIT BLOCKED: cargo fmt --all -- --check fails."
+        echo "  Run:  cargo fmt --all"
+        cargo fmt --all -- --check 2>&1 | head -20
+        exit 1
+    fi
+fi

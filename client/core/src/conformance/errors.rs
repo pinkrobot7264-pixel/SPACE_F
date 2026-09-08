@@ -168,10 +168,7 @@ fn an_expired_deadline_yields_operation_timeout<V: Vfs + VfsDiagnostics>(c: &Ctx
                     .unwrap_err()
                     .code,
             ),
-            (
-                "volume_info",
-                c.vfs.volume_info(&expired).unwrap_err().code,
-            ),
+            ("volume_info", c.vfs.volume_info(&expired).unwrap_err().code),
             (
                 "probe",
                 c.vfs.probe(&expired, &c.p("timeout.txt")).unwrap_err().code,

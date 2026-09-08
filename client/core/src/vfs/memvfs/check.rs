@@ -120,17 +120,12 @@ impl VfsDiagnostics for MemVfs {
                         ));
                     }
                     if let Ok(c) = s.nodes.resolve(*child) {
-                        let expected = crate::vfs::path::FoldedName::new(
-                            &c.name,
-                            s.cfg.capabilities,
-                        );
+                        let expected =
+                            crate::vfs::path::FoldedName::new(&c.name, s.cfg.capabilities);
                         if expected != *key {
                             return Err(viol(
                                 "INV-NS-5",
-                                format!(
-                                    "child key {key} disagrees with display name {:?}",
-                                    c.name
-                                ),
+                                format!("child key {key} disagrees with display name {:?}", c.name),
                             ));
                         }
                     }

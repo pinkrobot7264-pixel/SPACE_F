@@ -38,46 +38,50 @@ pub fn all<V: Vfs + VfsDiagnostics>(vfs: &V, caps: Capabilities, limits: Limits)
 }
 
 fn deleting_a_directory_does_not_free_its_open_children<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
-    step(c.vfs, "delete a directory holding open children (INV-ID-4)", || {
-        // Regression, found by `fuzz_op_sequence` at step 11 of a generated
-        // sequence: "invariant INV-ID-4 violated: handle references a dead
-        // node".
-        //
-        // Reclamation used to free the whole subtree of an unlinked directory,
-        // on the assumption that a deleted directory is necessarily empty
-        // because `CanDelete` would have refused otherwise. `Cleanup` with
-        // `FspCleanupDelete` unlinks unconditionally, and nothing in the
-        // contract forces `CanDelete` first -- WinFsp happens to call it, but a
-        // contract that relies on a caller's discipline is not a contract.
-        //
-        // Reclamation is per node, not per subtree (fs-semantics §2).
-        let d = c.create_dir("doomed");
-        c.file_with("doomed\\child.txt", b"child data");
+    step(
+        c.vfs,
+        "delete a directory holding open children (INV-ID-4)",
+        || {
+            // Regression, found by `fuzz_op_sequence` at step 11 of a generated
+            // sequence: "invariant INV-ID-4 violated: handle references a dead
+            // node".
+            //
+            // Reclamation used to free the whole subtree of an unlinked directory,
+            // on the assumption that a deleted directory is necessarily empty
+            // because `CanDelete` would have refused otherwise. `Cleanup` with
+            // `FspCleanupDelete` unlinks unconditionally, and nothing in the
+            // contract forces `CanDelete` first -- WinFsp happens to call it, but a
+            // contract that relies on a caller's discipline is not a contract.
+            //
+            // Reclamation is per node, not per subtree (fs-semantics §2).
+            let d = c.create_dir("doomed");
+            c.file_with("doomed\\child.txt", b"child data");
 
-        // Hold a handle on the child, then delete the parent directory
-        // *without* asking CanDelete -- exactly what a hostile or buggy caller
-        // does.
-        let child = c.open_file("doomed\\child.txt").unwrap();
-        c.vfs.cleanup(&cx(), d, CleanupFlags::DELETE);
-        c.vfs.close(&cx(), d);
+            // Hold a handle on the child, then delete the parent directory
+            // *without* asking CanDelete -- exactly what a hostile or buggy caller
+            // does.
+            let child = c.open_file("doomed\\child.txt").unwrap();
+            c.vfs.cleanup(&cx(), d, CleanupFlags::DELETE);
+            c.vfs.close(&cx(), d);
 
-        // The child's handle must still resolve, and still read its data. If
-        // the subtree was freed wholesale this is a dangling handle.
-        let mut buf = [0u8; 10];
-        let n = c
-            .vfs
-            .read(&cx(), child, 0, &mut buf)
-            .expect("a handle on a child of a deleted directory must stay valid");
-        assert_eq!(&buf[..n as usize], b"child data");
-        assert!(c.vfs.file_info(&cx(), child).is_ok());
+            // The child's handle must still resolve, and still read its data. If
+            // the subtree was freed wholesale this is a dangling handle.
+            let mut buf = [0u8; 10];
+            let n = c
+                .vfs
+                .read(&cx(), child, 0, &mut buf)
+                .expect("a handle on a child of a deleted directory must stay valid");
+            assert_eq!(&buf[..n as usize], b"child data");
+            assert!(c.vfs.file_info(&cx(), child).is_ok());
 
-        // Both are gone from the namespace.
-        assert!(!c.exists("doomed"));
-        assert!(!c.exists("doomed\\child.txt"));
+            // Both are gone from the namespace.
+            assert!(!c.exists("doomed"));
+            assert!(!c.exists("doomed\\child.txt"));
 
-        // Closing the child is what finally reclaims it.
-        c.close(child);
-    });
+            // Closing the child is what finally reclaims it.
+            c.close(child);
+        },
+    );
 }
 
 fn close_is_exactly_once_per_open<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
@@ -103,7 +107,11 @@ fn io_after_close_is_invalid_handle<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         c.close(h);
 
         let mut buf = [0u8; 4];
-        expect_err("read after close", ErrorCode::InvalidHandle, c.vfs.read(&cx(), h, 0, &mut buf));
+        expect_err(
+            "read after close",
+            ErrorCode::InvalidHandle,
+            c.vfs.read(&cx(), h, 0, &mut buf),
+        );
         expect_err(
             "write after close",
             ErrorCode::InvalidHandle,
@@ -253,7 +261,10 @@ fn deleted_but_open_stays_usable<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
 
         // Delete through one handle's cleanup.
         c.vfs.cleanup(&cx(), doomed, CleanupFlags::DELETE);
-        assert!(!c.exists("ghost.txt"), "path lookup should fail after unlink");
+        assert!(
+            !c.exists("ghost.txt"),
+            "path lookup should fail after unlink"
+        );
 
         // The other handle keeps working: read, write, file_info, set_file_size.
         let mut buf = [0u8; 4];
@@ -361,7 +372,8 @@ fn illegal_transitions_leave_state_unchanged<V: Vfs + VfsDiagnostics>(c: &Ctx<V>
         c.vfs.close(&cx(), bogus);
         c.vfs.cleanup(&cx(), bogus, CleanupFlags::DELETE);
         c.vfs.close(&cx(), HandleId::INVALID);
-        c.vfs.cleanup(&cx(), HandleId::INVALID, CleanupFlags::DELETE);
+        c.vfs
+            .cleanup(&cx(), HandleId::INVALID, CleanupFlags::DELETE);
 
         // None of that touched the file.
         assert_eq!(c.read_all("stable.txt"), b"unchanged");

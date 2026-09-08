@@ -36,7 +36,10 @@ pub fn expect_err<T: std::fmt::Debug>(
     match r {
         Ok(v) => panic!("{what}: expected {code:?}, got Ok({v:?})"),
         Err(e) if e.code == code => e,
-        Err(e) => panic!("{what}: expected {code:?}, got {:?} ({})", e.code, e.message),
+        Err(e) => panic!(
+            "{what}: expected {code:?}, got {:?} ({})",
+            e.code, e.message
+        ),
     }
 }
 

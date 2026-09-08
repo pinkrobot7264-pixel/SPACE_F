@@ -69,7 +69,11 @@ pub type HandleTable = GenerationalTable<HandleId, HandleSlot>;
 pub type CursorTable = GenerationalTable<CursorId, CursorSlot>;
 
 pub fn new_handle_table(max: usize) -> HandleTable {
-    GenerationalTable::new(max, ErrorCode::InvalidHandle, "open handle limit (L7) reached")
+    GenerationalTable::new(
+        max,
+        ErrorCode::InvalidHandle,
+        "open handle limit (L7) reached",
+    )
 }
 
 pub fn new_cursor_table(max: usize) -> CursorTable {
@@ -94,9 +98,9 @@ pub fn new_node_table() -> NodeTable {
 }
 
 mod check;
+mod imp;
 #[cfg(test)]
 mod tests;
-mod imp;
 pub use imp::{MemVfs, MemVfsState};
 pub use node::MemNode;
 

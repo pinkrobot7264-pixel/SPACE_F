@@ -47,7 +47,10 @@ extern "system" {
 /// Convert [`DEFAULT_SDDL`] to a self-relative binary security descriptor.
 #[cfg(windows)]
 pub fn default_descriptor() -> Result<Vec<u8>, SpaceError> {
-    let sddl: Vec<u16> = DEFAULT_SDDL.encode_utf16().chain(std::iter::once(0)).collect();
+    let sddl: Vec<u16> = DEFAULT_SDDL
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     let mut psd: *mut core::ffi::c_void = std::ptr::null_mut();
     let mut size: u32 = 0;
 
@@ -137,6 +140,10 @@ mod tests {
         // Not a hard requirement, but a descriptor of surprising size would
         // mean the SDDL changed without anyone noticing.
         let sd = default_descriptor().unwrap();
-        assert!(sd.len() < 1024, "unexpectedly large descriptor: {}", sd.len());
+        assert!(
+            sd.len() < 1024,
+            "unexpectedly large descriptor: {}",
+            sd.len()
+        );
     }
 }

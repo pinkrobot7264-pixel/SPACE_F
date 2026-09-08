@@ -43,7 +43,10 @@ extern "C" {
 mod console {
     #[link(name = "kernel32")]
     extern "system" {
-        fn SetConsoleCtrlHandler(handler: Option<unsafe extern "system" fn(u32) -> i32>, add: i32) -> i32;
+        fn SetConsoleCtrlHandler(
+            handler: Option<unsafe extern "system" fn(u32) -> i32>,
+            add: i32,
+        ) -> i32;
     }
 
     /// Runs on a control thread supplied by Windows. It only signals -- all
@@ -151,7 +154,9 @@ fn run(argv: Vec<String>) -> i32 {
 
     // Block until Ctrl-C or a poison signal. In-flight callbacks continue to
     // run on dispatcher threads while this thread waits.
-    let reason = shutdown.recv().unwrap_or(lifecycle::ShutdownReason::Requested);
+    let reason = shutdown
+        .recv()
+        .unwrap_or(lifecycle::ShutdownReason::Requested);
 
     match reason {
         lifecycle::ShutdownReason::Poisoned => tracing::error!(

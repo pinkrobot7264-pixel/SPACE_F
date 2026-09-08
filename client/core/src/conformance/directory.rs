@@ -124,7 +124,11 @@ fn delete_while_enumerating_visits_every_entry<V: Vfs + VfsDiagnostics>(c: &Ctx<
         // And the directory is now genuinely empty, so it can be removed --
         // which is the failure the user actually sees.
         let names = c.list("del-while-enum");
-        assert_eq!(names, vec![".", ".."], "entries survived the sweep: {names:?}");
+        assert_eq!(
+            names,
+            vec![".", ".."],
+            "entries survived the sweep: {names:?}"
+        );
         let dh = c.open_dir("del-while-enum").unwrap();
         c.vfs
             .can_delete(&cx(), dh)
@@ -195,7 +199,10 @@ fn marker_yields_entries_strictly_after<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         assert_eq!(after_dotdot, vec!["a", "b", "c", "d", "e"]);
 
         let after_last = c.list_handle(h, Some("e"));
-        assert!(after_last.is_empty(), "marker at the last entry must yield nothing");
+        assert!(
+            after_last.is_empty(),
+            "marker at the last entry must yield nothing"
+        );
 
         c.close(h);
     });
@@ -225,7 +232,10 @@ fn marker_chaining_yields_each_entry_exactly_once<V: Vfs + VfsDiagnostics>(c: &C
 
             loop {
                 rounds += 1;
-                assert!(rounds < N + 10, "enumeration did not terminate (buf {buf_size})");
+                assert!(
+                    rounds < N + 10,
+                    "enumeration did not terminate (buf {buf_size})"
+                );
 
                 let cur = c.vfs.dir_open(&cx(), h, None, marker.as_deref()).unwrap();
                 let mut batch = Vec::new();
@@ -254,7 +264,11 @@ fn marker_chaining_yields_each_entry_exactly_once<V: Vfs + VfsDiagnostics>(c: &C
             sorted.sort();
             let before = sorted.len();
             sorted.dedup();
-            assert_eq!(before, sorted.len(), "duplicate entries at buffer size {buf_size}");
+            assert_eq!(
+                before,
+                sorted.len(),
+                "duplicate entries at buffer size {buf_size}"
+            );
         }
 
         c.close(h);
@@ -345,7 +359,6 @@ fn a_stale_cursor_is_a_controlled_error<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
 
         // Never-allocated and forged cursors.
         for raw in [0u64, 1, u64::MAX, 0xDEAD_BEEF, cur.as_raw() ^ 0xFFFF] {
-
             let bogus = CursorId::from_raw(raw);
             assert!(
                 c.vfs.dir_next(&cx(), bogus).is_err(),
@@ -373,10 +386,16 @@ fn dot_entries_carry_the_right_info<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         c.close(inner);
 
         assert_eq!(dot.name, ".");
-        assert_eq!(dot.info.index_number, inner_index, "'.' must describe the directory itself");
+        assert_eq!(
+            dot.info.index_number, inner_index,
+            "'.' must describe the directory itself"
+        );
         assert!(dot.info.is_dir());
         assert_eq!(dotdot.name, "..");
-        assert_eq!(dotdot.info.index_number, outer_index, "'..' must describe the parent");
+        assert_eq!(
+            dotdot.info.index_number, outer_index,
+            "'..' must describe the parent"
+        );
         assert!(dotdot.info.is_dir());
     });
 }

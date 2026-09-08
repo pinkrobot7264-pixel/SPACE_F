@@ -74,7 +74,11 @@ fn every_rejection_rule<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
             c.raw(&long_component),
         );
         let long_path = format!("\\{}", "a".repeat(40_000));
-        expect_err("40,000-char path", ErrorCode::NameTooLong, c.raw(&long_path));
+        expect_err(
+            "40,000-char path",
+            ErrorCode::NameTooLong,
+            c.raw(&long_path),
+        );
     });
 }
 
@@ -171,7 +175,9 @@ fn inv_ns_6_path_traversal_cannot_escape_the_namespace<V: Vfs + VfsDiagnostics>(
         // filesystem is untouched. The second half is what makes this an
         // isolation test rather than a parser test.
         const HOSTS: &str = r"C:\Windows\System32\drivers\etc\hosts";
-        let before = std::fs::metadata(HOSTS).ok().and_then(|m| m.modified().ok());
+        let before = std::fs::metadata(HOSTS)
+            .ok()
+            .and_then(|m| m.modified().ok());
 
         for evil in [
             r"\..\..\Windows\System32\drivers\etc\hosts",

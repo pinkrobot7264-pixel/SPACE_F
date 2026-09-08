@@ -37,7 +37,11 @@ fn open_nonexistent_is_file_not_found<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
             c.open_file("nope.txt"),
         );
         let p = c.p("nope.txt");
-        expect_err("probe nonexistent", ErrorCode::FileNotFound, c.vfs.probe(&cx(), &p));
+        expect_err(
+            "probe nonexistent",
+            ErrorCode::FileNotFound,
+            c.vfs.probe(&cx(), &p),
+        );
     });
 }
 
@@ -126,7 +130,9 @@ fn same_file_opened_twice<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
             c.vfs.file_info(&cx(), b).unwrap().index_number
         );
         // A write through one is visible through the other: one node.
-        c.vfs.write(&cx(), a, 0, b"CONTENT", WriteMode::NORMAL).unwrap();
+        c.vfs
+            .write(&cx(), a, 0, b"CONTENT", WriteMode::NORMAL)
+            .unwrap();
         let mut buf = [0u8; 7];
         c.vfs.read(&cx(), b, 0, &mut buf).unwrap();
         assert_eq!(&buf, b"CONTENT");
@@ -179,7 +185,10 @@ fn create_directory<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
                 },
             )
             .unwrap();
-        assert!(o.info.is_dir(), "directory must carry FILE_ATTRIBUTE_DIRECTORY");
+        assert!(
+            o.info.is_dir(),
+            "directory must carry FILE_ATTRIBUTE_DIRECTORY"
+        );
         c.close(o.handle);
 
         // Nested creation works once the parent exists.
@@ -254,7 +263,9 @@ fn granted_access_is_recorded_not_enforced<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) 
             )
             .unwrap()
             .handle;
-        c.vfs.write(&cx(), h, 0, b"written", WriteMode::NORMAL).unwrap();
+        c.vfs
+            .write(&cx(), h, 0, b"written", WriteMode::NORMAL)
+            .unwrap();
         let mut buf = [0u8; 7];
         assert_eq!(c.vfs.read(&cx(), h, 0, &mut buf).unwrap(), 7);
         c.close(h);

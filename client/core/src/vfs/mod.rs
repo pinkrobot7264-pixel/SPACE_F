@@ -13,12 +13,12 @@
 use contracts::{ErrorCode, RequestId, SpaceError};
 
 pub mod config_map;
+pub mod coverage_tests;
 pub mod ids;
 pub mod invariants;
 pub mod limits;
 pub mod memvfs;
 pub mod path;
-pub mod coverage_tests;
 pub mod properties;
 pub mod types;
 
@@ -144,8 +144,13 @@ pub trait Vfs: Send + Sync {
     ) -> Result<FileInfo, SpaceError>;
 
     fn can_delete(&self, cx: &OpCtx, h: HandleId) -> Result<(), SpaceError>;
-    fn rename(&self, cx: &OpCtx, h: HandleId, to: &VfsPath, replace: bool)
-        -> Result<(), SpaceError>;
+    fn rename(
+        &self,
+        cx: &OpCtx,
+        h: HandleId,
+        to: &VfsPath,
+        replace: bool,
+    ) -> Result<(), SpaceError>;
 
     fn dir_open(
         &self,

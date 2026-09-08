@@ -103,8 +103,16 @@ fn read_at_or_past_eof_is_end_of_file<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         let mut buf = [0u8; 8];
         // At EOF and past it: EndOfFile with zero transferred -- NOT
         // success-with-zero, which is how a caller loops forever.
-        expect_err("read at EOF", ErrorCode::EndOfFile, c.vfs.read(&cx(), h, 5, &mut buf));
-        expect_err("read past EOF", ErrorCode::EndOfFile, c.vfs.read(&cx(), h, 6, &mut buf));
+        expect_err(
+            "read at EOF",
+            ErrorCode::EndOfFile,
+            c.vfs.read(&cx(), h, 5, &mut buf),
+        );
+        expect_err(
+            "read past EOF",
+            ErrorCode::EndOfFile,
+            c.vfs.read(&cx(), h, 6, &mut buf),
+        );
         expect_err(
             "read far past EOF",
             ErrorCode::EndOfFile,
@@ -156,7 +164,11 @@ fn offset_length_overflow_is_invalid_parameter<V: Vfs + VfsDiagnostics>(c: &Ctx<
         // offset = u64::MAX - 1, length 4096. checked_add is not optional:
         // this arrives from the fuzzer within the hour.
         let mut buf = [0u8; 4096];
-        let code = c.vfs.read(&cx(), h, u64::MAX - 1, &mut buf).unwrap_err().code;
+        let code = c
+            .vfs
+            .read(&cx(), h, u64::MAX - 1, &mut buf)
+            .unwrap_err()
+            .code;
         assert!(
             code == ErrorCode::InvalidParameter || code == ErrorCode::EndOfFile,
             "overflowing read gave {code:?}"
@@ -209,7 +221,11 @@ fn length_above_l4_is_invalid_parameter<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         );
 
         c.close(h);
-        assert_eq!(c.read_all("l4.txt"), b"x", "a rejected write changed the file");
+        assert_eq!(
+            c.read_all("l4.txt"),
+            b"x",
+            "a rejected write changed the file"
+        );
     });
 }
 
@@ -217,7 +233,10 @@ fn write_past_eof_zero_fills_the_gap<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
     step(c.vfs, "write past EOF zero-fills", || {
         c.file_with("gap.bin", b"AAAA");
         let h = c.open_file("gap.bin").unwrap();
-        let (n, info) = c.vfs.write(&cx(), h, 10, b"BBBB", WriteMode::NORMAL).unwrap();
+        let (n, info) = c
+            .vfs
+            .write(&cx(), h, 10, b"BBBB", WriteMode::NORMAL)
+            .unwrap();
         assert_eq!(n, 4);
         assert_eq!(info.file_size, 14);
         c.close(h);
@@ -237,7 +256,9 @@ fn write_to_end_of_file_ignores_the_offset<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) 
         c.vfs
             .write(&cx(), h, 999_999, b"-more", WriteMode::APPEND)
             .unwrap();
-        c.vfs.write(&cx(), h, 0, b"-end", WriteMode::APPEND).unwrap();
+        c.vfs
+            .write(&cx(), h, 0, b"-end", WriteMode::APPEND)
+            .unwrap();
         c.close(h);
         assert_eq!(c.read_all("append.txt"), b"start-more-end");
     });
@@ -251,7 +272,10 @@ fn write_length_zero_changes_nothing<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         assert_eq!(n, 0);
         assert_eq!(info.file_size, 9);
         let (n, _) = c.vfs.write(&cx(), h, 500, b"", WriteMode::NORMAL).unwrap();
-        assert_eq!(n, 0, "a zero-length write past EOF must not extend the file");
+        assert_eq!(
+            n, 0,
+            "a zero-length write past EOF must not extend the file"
+        );
         c.close(h);
         assert_eq!(c.read_all("noop.txt"), b"unchanged");
     });
@@ -283,7 +307,10 @@ fn constrained_io_never_grows_the_file<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
             .write(&cx(), h, 8, b"YYYYYYYY", WriteMode::CONSTRAINED)
             .unwrap();
         assert_eq!(n, 2, "constrained write must be truncated to the file size");
-        assert_eq!(info.file_size, 10, "constrained write must not grow the file");
+        assert_eq!(
+            info.file_size, 10,
+            "constrained write must not grow the file"
+        );
 
         c.close(h);
         assert_eq!(c.read_all("constrained.bin"), b"01234567YY");
@@ -299,7 +326,13 @@ fn read_after_write_returns_what_was_written<V: Vfs + VfsDiagnostics>(c: &Ctx<V>
         let h = c.open_file("rw.bin").unwrap();
 
         let mut expected = Vec::new();
-        for (offset, len) in [(0usize, 100usize), (50, 200), (1000, 37), (137, 1), (0, 4096)] {
+        for (offset, len) in [
+            (0usize, 100usize),
+            (50, 200),
+            (1000, 37),
+            (137, 1),
+            (0, 4096),
+        ] {
             let content: Vec<u8> = (0..len).map(|i| ((i + offset) % 253) as u8).collect();
             c.vfs
                 .write(&cx(), h, offset as u64, &content, WriteMode::NORMAL)

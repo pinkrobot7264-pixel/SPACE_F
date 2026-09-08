@@ -149,7 +149,8 @@ fn check_invariants_passes_after_ordinary_activity() {
     let v = vfs();
     create_dir(&v, "\\dir");
     let h = create_file(&v, "\\dir\\a.txt");
-    v.write(&cx(), h, 0, b"hello world", WriteMode::NORMAL).unwrap();
+    v.write(&cx(), h, 0, b"hello world", WriteMode::NORMAL)
+        .unwrap();
     v.check_invariants().unwrap();
 
     let d = create_file(&v, "\\dir\\b.txt");
@@ -192,7 +193,8 @@ fn checker_does_not_change_any_subsequent_result() {
     // not change any subsequent result."
     let v = vfs();
     let h = create_file(&v, "\\a.txt");
-    v.write(&cx(), h, 0, b"0123456789", WriteMode::NORMAL).unwrap();
+    v.write(&cx(), h, 0, b"0123456789", WriteMode::NORMAL)
+        .unwrap();
 
     let mut buf = [0u8; 4];
     let n1 = v.read(&cx(), h, 2, &mut buf).unwrap();
@@ -224,7 +226,10 @@ fn checker_is_read_only_even_when_it_reports_a_violation() {
     let err = v.check_invariants().unwrap_err();
     assert_eq!(err.id, "INV-ID-2");
     let after = snapshot(&v);
-    assert_eq!(before, after, "checker repaired a violation instead of reporting it");
+    assert_eq!(
+        before, after,
+        "checker repaired a violation instead of reporting it"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -430,7 +435,8 @@ fn fires_inv_id_4_when_a_handle_references_a_dead_node() {
 fn fires_inv_fs_1_when_allocation_size_falls_below_file_size() {
     let v = vfs();
     let h = create_file(&v, "\\a.txt");
-    v.write(&cx(), h, 0, &[7u8; 5000], WriteMode::NORMAL).unwrap();
+    v.write(&cx(), h, 0, &[7u8; 5000], WriteMode::NORMAL)
+        .unwrap();
     {
         let mut s = v.state_blocking();
         let node = s.handles.resolve(h).unwrap().node;
@@ -546,8 +552,17 @@ fn fires_inv_res_1_when_a_directory_exceeds_l6() {
 #[test]
 fn every_checker_branch_has_a_firing_test() {
     const CHECKER_BRANCHES: &[&str] = &[
-        "INV-NS-1", "INV-NS-2", "INV-NS-3", "INV-NS-4", "INV-NS-5", "INV-ID-2", "INV-ID-4",
-        "INV-FS-1", "INV-FS-2", "INV-FS-4", "INV-RES-1",
+        "INV-NS-1",
+        "INV-NS-2",
+        "INV-NS-3",
+        "INV-NS-4",
+        "INV-NS-5",
+        "INV-ID-2",
+        "INV-ID-4",
+        "INV-FS-1",
+        "INV-FS-2",
+        "INV-FS-4",
+        "INV-RES-1",
     ];
     // This list is asserted against the firing tests by name in the module
     // above; the constant exists so the exit-gate audit can read it.
@@ -774,7 +789,11 @@ fn a_directory_larger_than_one_window_enumerates_completely() {
     v.dir_close(&cx(), cur);
     v.close(&cx(), d);
 
-    assert_eq!(names.len(), N + 2, "expected N + 2 entries across window refills");
+    assert_eq!(
+        names.len(),
+        N + 2,
+        "expected N + 2 entries across window refills"
+    );
     assert_eq!(names[0], ".");
     assert_eq!(names[1], "..");
 
@@ -783,11 +802,19 @@ fn a_directory_larger_than_one_window_enumerates_completely() {
     let children = &names[2..];
     let mut sorted = children.to_vec();
     sorted.sort();
-    assert_eq!(children, sorted.as_slice(), "order broke across a window boundary");
+    assert_eq!(
+        children,
+        sorted.as_slice(),
+        "order broke across a window boundary"
+    );
 
     let mut dedup = sorted.clone();
     dedup.dedup();
-    assert_eq!(dedup.len(), N, "an entry was duplicated or dropped at a refill");
+    assert_eq!(
+        dedup.len(),
+        N,
+        "an entry was duplicated or dropped at a refill"
+    );
 }
 
 #[test]

@@ -102,7 +102,13 @@ macro_rules! generational_id {
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self.index() {
-                    Some(i) => write!(f, "{}(idx={}, gen={})", stringify!($name), i, self.generation()),
+                    Some(i) => write!(
+                        f,
+                        "{}(idx={}, gen={})",
+                        stringify!($name),
+                        i,
+                        self.generation()
+                    ),
                     None => write!(f, "{}(INVALID)", stringify!($name)),
                 }
             }
@@ -118,8 +124,14 @@ macro_rules! generational_id {
     };
 }
 
-generational_id!(HandleId, "An opened filesystem handle -- one per successful `create`/`open`.");
-generational_id!(CursorId, "Directory enumeration state, valid for one `ReadDirectory` call.");
+generational_id!(
+    HandleId,
+    "An opened filesystem handle -- one per successful `create`/`open`."
+);
+generational_id!(
+    CursorId,
+    "Directory enumeration state, valid for one `ReadDirectory` call."
+);
 generational_id!(
     NodeId,
     "SPACE's internal object identity -- a file or directory. **Never crosses the FFI** (§3.1)."

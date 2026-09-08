@@ -40,7 +40,8 @@ fn zero_is_never_a_valid_identifier<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         );
         // The void entry points must simply do nothing.
         c.vfs.close(&cx(), HandleId::INVALID);
-        c.vfs.cleanup(&cx(), HandleId::INVALID, CleanupFlags::DELETE);
+        c.vfs
+            .cleanup(&cx(), HandleId::INVALID, CleanupFlags::DELETE);
         c.vfs.dir_close(&cx(), CursorId::INVALID);
     });
 }
@@ -85,7 +86,10 @@ fn forged_identifiers_never_resolve<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
         // ...and the real handle survived all that probing.
         assert!(c.vfs.file_info(&cx(), live).is_ok());
         c.close(live);
-        assert!(c.exists("forge.txt"), "a forged cleanup deleted a real file");
+        assert!(
+            c.exists("forge.txt"),
+            "a forged cleanup deleted a real file"
+        );
     });
 }
 
@@ -122,7 +126,9 @@ fn node_identity_is_stable_across_rename_and_unlink<V: Vfs + VfsDiagnostics>(c: 
         let start = c.vfs.file_info(&cx(), h).unwrap().index_number;
 
         // ...across rename
-        c.vfs.rename(&cx(), h, &c.p("ident-moved.txt"), false).unwrap();
+        c.vfs
+            .rename(&cx(), h, &c.p("ident-moved.txt"), false)
+            .unwrap();
         assert_eq!(c.vfs.file_info(&cx(), h).unwrap().index_number, start);
 
         // ...and across unlink

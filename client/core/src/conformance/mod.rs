@@ -50,11 +50,7 @@ pub use util::{cx, expect_err, step, Ctx};
 /// The caller supplies the `Capabilities` and `Limits` the implementation was
 /// built with. The suite never assumes a value; it reads them, so §3.4 stays
 /// the single source of truth for the numbers (§14.3).
-pub fn run_conformance_suite<V: Vfs + VfsDiagnostics>(
-    vfs: &V,
-    caps: Capabilities,
-    limits: Limits,
-) {
+pub fn run_conformance_suite<V: Vfs + VfsDiagnostics>(vfs: &V, caps: Capabilities, limits: Limits) {
     lifecycle::all(vfs, caps, limits); // §3.3.1, §3.3.2
     create_open::all(vfs, caps, limits); // §3.3.3
     read_write::all(vfs, caps, limits); // §3.3.4

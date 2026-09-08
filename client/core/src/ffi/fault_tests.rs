@@ -54,9 +54,18 @@ fn every_phase_1_fault_point_is_reachable_from_the_boundary() {
     // A registered point that no code consults is a point that will silently
     // stop working. Each of the eight must map to an operation.
     for point in faults::PHASE_1_FAULT_POINTS {
-        let found = ["read", "write", "open", "create", "dir_open", "get_file_info", "rename", "cleanup"]
-            .iter()
-            .any(|op| fault_point_for(op) == Some(*point));
+        let found = [
+            "read",
+            "write",
+            "open",
+            "create",
+            "dir_open",
+            "get_file_info",
+            "rename",
+            "cleanup",
+        ]
+        .iter()
+        .any(|op| fault_point_for(op) == Some(*point));
         assert!(found, "fault point {point} is registered but unreachable");
     }
 }
@@ -239,7 +248,10 @@ fn a_hang_returns_within_the_callback_deadline() {
     faults::disarm_all();
     CALLBACK_TIMEOUT_MS.store(30_000, std::sync::atomic::Ordering::Relaxed);
 
-    assert_eq!(s, STATUS_IO_TIMEOUT, "a hang must surface as STATUS_IO_TIMEOUT");
+    assert_eq!(
+        s, STATUS_IO_TIMEOUT,
+        "a hang must surface as STATUS_IO_TIMEOUT"
+    );
     assert!(
         elapsed < Duration::from_millis(500 + 500),
         "callback took {elapsed:?}, past callback_timeout_ms + 500ms"

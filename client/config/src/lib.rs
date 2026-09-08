@@ -687,18 +687,8 @@ impl VfsSection {
             1,
             1 << 24,
         )?;
-        range(
-            "vfs.max_io_bytes",
-            self.max_io_bytes as u64,
-            4096,
-            1 << 30,
-        )?;
-        range(
-            "vfs.max_path_chars",
-            self.max_path_chars as u64,
-            16,
-            32_767,
-        )?;
+        range("vfs.max_io_bytes", self.max_io_bytes as u64, 4096, 1 << 30)?;
+        range("vfs.max_path_chars", self.max_path_chars as u64, 16, 32_767)?;
         range(
             "vfs.max_component_chars",
             self.max_component_chars as u64,
