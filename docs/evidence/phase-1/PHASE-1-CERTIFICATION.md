@@ -22,13 +22,13 @@ is written to be checkable by someone who does not trust it.
 | Integration tests | **PASS** | mount functional test 19/19 against a live `S:` |
 | Conformance | **PASS** | 11 modules, both capability variants, no WinFsp required |
 | Property tests | **PASS** | 9 proptest properties, seeds persisted |
-| Fuzzing | **IN PROGRESS** | 6 targets build and run under libFuzzer + ASan; ≥30 min each pending |
+| Fuzzing | **PARTIAL** | 6 targets build and run clean under libFuzzer + ASan; the manual's >=30 min per target not yet completed |
 | Fault injection | **PASS (in-process)** | full §13.5 matrix; the Windows half needs a human for Explorer |
 | Concurrency | **PASS** | deadline-bounded lock proven; §3.6 prediction confirmed in-process |
 | Resource limits | **PASS** | L1–L8 at limit and limit+1 with state comparison |
 | Windows compatibility | **PARTIAL** | 4 scripted clients pass; Explorer/Notepad/7-Zip need a human |
 | Crash recovery | **IN PROGRESS** | kill matrix: idle ✅, mid-write ✅, mid-enumeration running |
-| Stress / soak | **PARTIAL** | 200 mount/unmount cycles PASS; 4-hour soak not yet run |
+| Stress / soak | **PARTIAL** | 200 mount/unmount cycles PASS; 4-hour soak not yet run; enumeration scaling fixed and measured |
 | Invariant validation | **PASS** | checker proven to fire (12 tests) and proven read-only (3 tests) |
 | Evidence | **PARTIAL** | collector written; several artifacts not yet produced |
 | Documentation | **PASS** | 5 protocol docs, 9 ADRs, 1 runbook, all matching the implementation |
@@ -100,9 +100,34 @@ these were only findable through a real mount.
 | 6 | `INV-FS-1` was unfalsifiable (see §2) | writing the "checker must fire" tests | allocation became a stored property |
 | 7 | Conformance `Ctx` leaked one handle per module | the L7 boundary test ran 9 handles short | fixed; the L7 test now asserts the **exact** count, so it doubles as a suite-wide leak detector |
 | 8 | A non-directory mid-path reported two different codes depending on depth | conformance suite, first run | one rule: any parent-chain failure is `ObjectPathNotFound`; documented, since the manual does not name the case |
+| 9 | Enumeration was **O(N²)**, making L6 unusable and starving the state lock | the §15.2 kill matrix, at 5,000 entries with a concurrent enumeration loop | bounded window + `BTreeMap::range`; flat 3 ms from 1,000 to 22,000 entries |
+| 10 | The fuzz runner deadlocked on a PowerShell pipeline | a 30-minute budget ran 95 minutes with corpus and RSS frozen | file redirection instead of `\| Out-String` |
 
-Defect 7 is worth noting twice: the leak detector caught a leak in the very
-test that was added alongside it, which is the behaviour you want from a gate.
+Three of these deserve a second look.
+
+**Defect 7** — the leak detector caught a leak in the very test added alongside
+it, which is the behaviour you want from a gate.
+
+**Defect 9** — *no unit test could have caught it.* The conformance suite
+enumerates 40–60 entries, where O(N²) and O(N) are indistinguishable. It took
+5,000 entries plus a concurrent enumeration loop, which is exactly the state
+§15.2 specifies for the kill matrix. The lesson is not "add a perf test"; it is
+that the manual's stress states exist because they reach conditions unit tests
+structurally cannot.
+
+**Defect 10** — the failure mode of a stuck *measurement harness* is
+indistinguishable from the failure it exists to detect. A hung fuzz target and a
+hung fuzz *runner* look identical from outside; the only tell was that the
+corpus count had stopped moving. Worth remembering before trusting any
+long-running measurement in this project.
+
+### A process mistake, recorded
+
+While cleaning up a runaway test I killed PowerShell processes by age rather
+than by identity, and took out an in-progress fuzz run and a performance
+measurement along with the intended target. Both were re-run. Noted because the
+evidence trail is only as trustworthy as the discipline around it, and "I killed
+the thing that was measuring" is a plausible cause of a confusing result later.
 
 ---
 
