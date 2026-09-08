@@ -102,15 +102,32 @@ $artifacts = Join-Path $repo "fuzz\artifacts"
 $corpusOut = Join-Path $repo "tests\fixtures\fuzz-corpus"
 New-Item -ItemType Directory -Force -Path $corpusOut | Out-Null
 if (Test-Path $artifacts) {
-    $crashes = Get-ChildItem $artifacts -Recurse -File -ErrorAction SilentlyContinue
+    $all = Get-ChildItem $artifacts -Recurse -File -ErrorAction SilentlyContinue
+
+    # A crash is crash-/leak-/timeout-/oom-. `slow-unit-` is NOT a crash: it is
+    # libFuzzer noting that one input took longer than its threshold, which on
+    # this machine has also been produced by the system SUSPENDING mid-execution
+    # (an input appears to take hours). Copying those in as "crash inputs" would
+    # put fabricated findings into the evidence directory.
+    $crashes = $all | Where-Object { $_.Name -match '^(crash|leak|timeout|oom)-' }
+    $slow    = $all | Where-Object { $_.Name -match '^slow-unit-' }
+
+    $lines += ""
     if ($crashes) {
-        Copy-Item $artifacts\* $corpusOut -Recurse -Force
-        $lines += ""
+        foreach ($c in $crashes) {
+            Copy-Item $c.FullName (Join-Path $corpusOut $c.Name) -Force
+        }
         $lines += "crash inputs preserved as regression fixtures: $($crashes.Count)"
         Write-Host "$($crashes.Count) crash input(s) copied to tests/fixtures/fuzz-corpus" -ForegroundColor Yellow
     } else {
-        $lines += ""
         $lines += "crash inputs: none"
+    }
+
+    if ($slow) {
+        $lines += "slow-unit artifacts (NOT crashes, not copied): $($slow.Count)"
+        $lines += "  check slowest_unit_time_sec in the run log before treating one as a finding;"
+        $lines += "  a system suspend mid-execution produces these with absurd durations."
+        Write-Host "$($slow.Count) slow-unit artifact(s) present -- not crashes, not copied" -ForegroundColor DarkGray
     }
 }
 
