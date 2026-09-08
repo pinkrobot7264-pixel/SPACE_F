@@ -33,7 +33,51 @@ pub fn all<V: Vfs + VfsDiagnostics>(vfs: &V, caps: Capabilities, limits: Limits)
     reclamation_is_exactly_at_the_last_close(&c);
     recreating_at_a_deleted_path_gives_a_different_node(&c);
     delete_on_close_unlinks_at_cleanup(&c);
+    deleting_a_directory_does_not_free_its_open_children(&c);
     illegal_transitions_leave_state_unchanged(&c);
+}
+
+fn deleting_a_directory_does_not_free_its_open_children<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {
+    step(c.vfs, "delete a directory holding open children (INV-ID-4)", || {
+        // Regression, found by `fuzz_op_sequence` at step 11 of a generated
+        // sequence: "invariant INV-ID-4 violated: handle references a dead
+        // node".
+        //
+        // Reclamation used to free the whole subtree of an unlinked directory,
+        // on the assumption that a deleted directory is necessarily empty
+        // because `CanDelete` would have refused otherwise. `Cleanup` with
+        // `FspCleanupDelete` unlinks unconditionally, and nothing in the
+        // contract forces `CanDelete` first -- WinFsp happens to call it, but a
+        // contract that relies on a caller's discipline is not a contract.
+        //
+        // Reclamation is per node, not per subtree (fs-semantics §2).
+        let d = c.create_dir("doomed");
+        c.file_with("doomed\\child.txt", b"child data");
+
+        // Hold a handle on the child, then delete the parent directory
+        // *without* asking CanDelete -- exactly what a hostile or buggy caller
+        // does.
+        let child = c.open_file("doomed\\child.txt").unwrap();
+        c.vfs.cleanup(&cx(), d, CleanupFlags::DELETE);
+        c.vfs.close(&cx(), d);
+
+        // The child's handle must still resolve, and still read its data. If
+        // the subtree was freed wholesale this is a dangling handle.
+        let mut buf = [0u8; 10];
+        let n = c
+            .vfs
+            .read(&cx(), child, 0, &mut buf)
+            .expect("a handle on a child of a deleted directory must stay valid");
+        assert_eq!(&buf[..n as usize], b"child data");
+        assert!(c.vfs.file_info(&cx(), child).is_ok());
+
+        // Both are gone from the namespace.
+        assert!(!c.exists("doomed"));
+        assert!(!c.exists("doomed\\child.txt"));
+
+        // Closing the child is what finally reclaims it.
+        c.close(child);
+    });
 }
 
 fn close_is_exactly_once_per_open<V: Vfs + VfsDiagnostics>(c: &Ctx<V>) {

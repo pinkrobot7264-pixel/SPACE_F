@@ -311,22 +311,70 @@ impl MemVfsState {
         if !due {
             return;
         }
-        // Collect the subtree first; a directory deleted while open takes its
-        // (necessarily empty, by CanDelete) children with it.
+        // Collect the subtree.
+        //
+        // The earlier version freed it wholesale, on the assumption that a
+        // deleted directory is "necessarily empty, by CanDelete". **That
+        // assumption is false and `fuzz_op_sequence` found it**: `Cleanup` with
+        // `FspCleanupDelete` unlinks unconditionally, and nothing in the VFS
+        // contract forces `CanDelete` to have been called first. WinFsp happens
+        // to call it, but a contract that depends on a caller's discipline is
+        // not a contract.
+        //
+        // Freeing the subtree wholesale destroyed descendants that still had
+        // open handles, leaving those handles pointing at dead nodes --
+        // INV-ID-4, reported at step 11 of a generated sequence.
         let mut stack = vec![id];
-        let mut doomed = Vec::new();
+        let mut subtree = Vec::new();
         while let Some(cur) = stack.pop() {
             if let Ok(n) = self.nodes.resolve(cur) {
                 stack.extend(n.children.values().copied());
-                doomed.push(cur);
+                subtree.push(cur);
             }
         }
-        for d in doomed {
-            if let Ok(n) = self.nodes.resolve(d) {
-                let bytes = n.file_size();
-                self.total_bytes = self.total_bytes.saturating_sub(bytes);
+
+        // A descendant that is still open survives as an unlinked node and is
+        // reclaimed at *its own* last close, which is exactly what
+        // fs-semantics §2 promises: "reclaimed exactly at the Close that brings
+        // open_count to zero". Reclamation is per node, not per subtree.
+        let survivors: std::collections::HashSet<NodeId> = subtree
+            .iter()
+            .copied()
+            .filter(|n| {
+                self.nodes
+                    .resolve(*n)
+                    .map(|node| node.open_count > 0)
+                    .unwrap_or(false)
+            })
+            .collect();
+
+        for node in subtree {
+            if survivors.contains(&node) {
+                // Detach from a parent that is about to disappear, and drop
+                // children that are being freed, so the survivor is a
+                // well-formed unlinked node rather than one with dangling
+                // links.
+                let keep_parent = self
+                    .nodes
+                    .resolve(node)
+                    .ok()
+                    .and_then(|n| n.parent)
+                    .is_some_and(|p| survivors.contains(&p));
+
+                if let Ok(n) = self.nodes.resolve_mut(node) {
+                    n.unlinked = true;
+                    if !keep_parent {
+                        n.parent = None;
+                    }
+                    n.children.retain(|_, c| survivors.contains(c));
+                }
+            } else {
+                if let Ok(n) = self.nodes.resolve(node) {
+                    let bytes = n.file_size();
+                    self.total_bytes = self.total_bytes.saturating_sub(bytes);
+                }
+                let _ = self.nodes.free(node);
             }
-            let _ = self.nodes.free(d);
         }
     }
 

@@ -1,0 +1,18 @@
+ASan runtime: C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+=== fuzz_path (1800 s) ===
+PASS  fuzz_path : 10302521 runs in 1803s, no crash
+=== fuzz_handle (1800 s) ===
+PASS  fuzz_handle : 3290479 runs in 1803s, no crash
+=== fuzz_cursor (1800 s) ===
+PASS  fuzz_cursor : 1535599 runs in 1803s, no crash
+=== fuzz_read_args (1800 s) ===
+PASS  fuzz_read_args : 11312865 runs in 1804s, no crash
+=== fuzz_write_args (1800 s) ===
+PASS  fuzz_write_args : 6005256 runs in 1804s, no crash
+=== fuzz_op_sequence (1800 s) ===
+FAIL  fuzz_op_sequence : exit 1 after 912s
+
+results: docs\evidence\phase-1\fuzz-results.txt
+1 target(s) failed
+
+[exited with code 1]
