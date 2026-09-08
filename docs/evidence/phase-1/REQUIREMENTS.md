@@ -64,20 +64,20 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S12-1 | §12.1 | `request_id` on every boundary log line | `ffi/mod.rs log_boundary` | live log inspection | path/handle/offset/length present | PASS |
 | R-S12-2 | §12.2 | Log level discipline | `ffi/mod.rs is_expected` | live log: FileNotFound at DEBUG | 14,560 at debug, 0 at error | PASS |
 | R-S12-3 | §12.3 | No file content in logs (asserted) | `ffi/mod.rs log_boundary` | `file_content_never_reaches_the_log` | test output | PASS |
-| R-S12-4 | §12.4 | Four-column translation matrix | `ffi/ntstatus.rs` | `the_nine_phase_1_codes_map_to_the_manual_s_values` + live NTSTATUS | partial: Win32 column pending | TESTING |
+| R-S12-4 | §12.4 | Four-column translation matrix | `ffi/ntstatus.rs` | in-process mapping tests + `scripts/ntstatus-matrix.ps1` (Win32 column asserted against `RtlNtStatusToDosError`) | partial: Win32 column pending live run | TESTING |
 | R-S13-1 | §13.1 | Phase 1 fault set + 8 fault points | `faults/src/lib.rs`, `ffi/mod.rs apply_fault` | `ffi/fault_tests.rs` (11 tests) | 175 tests w/ feature | PASS |
 | R-S13-2 | §13.1 | `CorruptBytes` not armable | `faults::arm` | `corrupt_bytes_is_not_armable_in_phase_1` x2 | both profiles | PASS |
-| R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | `apply_fault` Hang | `fault_tests.rs` + `scripts/fault-injection-test.ps1` | in-process PASS; Explorer-responsive pending human | TESTING |
+| R-S13-3 | §13.2/§13.3 | Bounded callback under Hang, 7 assertions; repeated for 6 ops; bound scales with config | `apply_fault` Hang | `fault_tests.rs` + `scripts/fault-injection-test.ps1` (read/write/open/readdir/getinfo/rename + `callback_timeout_ms=1000`) | in-process PASS; live 6-op run NOT YET RUN; Explorer-responsive pending human | TESTING |
 | R-S13-4 | §13.4 | Near-miss delay succeeds | `apply_fault` Delay | `a_near_miss_delay_still_succeeds` | test output | PASS |
 | R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | `apply_fault` | 6 fault-row tests | test output | PASS |
 | R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | `fuzz/fuzz_targets/*.rs` | `scripts/fuzz.ps1` | 5/6 clean at 1800s (32.4M runs); `fuzz_op_sequence` found INV-ID-4, fixed, re-run clean | TESTING |
 | R-S14-2 | §14.2 | Property tests; seeds printed | `vfs/properties.rs` | 9 proptest properties | test output | PASS |
 | R-S14-3 | §14.3 | Limit & limit+1 with state comparison | `conformance/boundaries.rs` | L1-L8 tests | test output | PASS |
-| R-S15-1 | §15.1 | Clean shutdown in 5 states | `client/main/src/main.rs` | 200 stress cycles + poison path test | partial: hung-op case pending | TESTING |
+| R-S15-1 | §15.1 | Clean shutdown in 5 states | `client/main/src/main.rs` | `scripts/shutdown-states.ps1` -- all five states incl. hung-op and poisoned | NOT YET RUN (runner added; graceful Ctrl-C delivery verified against a live console process) | TODO |
 | R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | `scripts/kill-matrix.ps1` | idle ✅ ×20, mid-write ✅ ×20 | mid-enumeration outstanding (run exclusively) | TESTING |
 | R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | `docs/runbooks/stale-mount-recovery.md` | n/a (prose) | on disk | PASS |
-| R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | `mount-stress.txt`, os-safety OK | PASS |
-| R-S16-2 | §16.2 | 30-min I/O stress | `scripts/soak.ps1` (same workload) | size matrix + verify | NOT YET RUN | TODO |
+| R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | **WITHDRAWN** -- harness force-killed in both branches while reporting a graceful/forced split (`mount-stress-INVALID-fake-graceful-harness.txt`); fixed in `3275f19`, must be re-run | FAIL |
+| R-S16-2 | §16.2 | 30-min I/O stress | `scripts/io-stress.ps1` | 4 concurrent workers: size matrix w/ SHA-256, 5,000-entry enumeration, renames, 500 MB robocopy in+out hash-compared | NOT YET RUN (soak.ps1 did not meet this section: length-only verify, 200 entries, no robocopy, not concurrent) | TODO |
 | R-S16-3 | §16.3 | Windows compatibility matrix | `scripts/compatibility-matrix.ps1` | 4 scripted clients + 3 GUI rows for human | pending run | TESTING |
 | R-S16-4 | §16.4 | ProcMon write-confinement evidence | n/a (external) | `EXPLORER-CHECKLIST.md` §16.4 | HUMAN ACTION REQUIRED | BLOCKED |
 | R-S16-5 | §16.5 | 4-hour soak with thresholds | `scripts/soak.ps1` | thresholds fixed in advance | NOT YET RUN | TODO |

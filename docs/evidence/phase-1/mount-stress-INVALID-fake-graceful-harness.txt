@@ -44,3 +44,16 @@ OS safety OK
 mount/unmount stress OK
 
 [exited with code 0]
+
+================================================================================
+INVALIDATED 2026-09-08.
+
+This run was produced by scripts/mount-stress.ps1 before commit 3275f19. That
+version reported a graceful/forced split while calling Stop-Process -Force in
+BOTH branches, so the "graceful" half of these cycles never exercised the
+ADR-0013a main-thread teardown path at all. The numbers below are real force
+kills; the graceful figure is not evidence of anything.
+
+Kept rather than deleted so the record shows what was claimed and when it was
+withdrawn. Section 16.1 must be re-run with the fixed harness.
+================================================================================
