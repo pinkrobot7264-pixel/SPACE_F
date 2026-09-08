@@ -41,11 +41,18 @@ $rows += Try-Op "PowerShell" "delete"    { Remove-Item "$d\b.txt" -Force; Remove
 # ---- cmd.exe -----------------------------------------------------------
 $d = "$root\compat-cmd"
 $rows += Try-Op "cmd.exe" "create"    { cmd /c "mkdir $d" | Out-Null; cmd /c "echo hello> $d\a.txt" | Out-Null; if (-not (Test-Path "$d\a.txt")) { throw "not created" } }
-$rows += Try-Op "cmd.exe" "read"      { $o = cmd /c "type $d\a.txt"; if ($o -notmatch "hello") { throw "content mismatch: $o" } }
+# -join before -notmatch. Against an ARRAY, PowerShell's -match/-notmatch are
+# filters, not booleans: `$o -notmatch "b.txt"` returns every line that does not
+# contain "b.txt", which for `dir` output is the volume header -- non-empty,
+# therefore truthy, therefore a thrown failure on a working operation. It bit
+# the properties row on the first live run and reported a cmd.exe defect that
+# does not exist (`dir S:\pt\b.txt` lists the file correctly). The enumerate and
+# read rows only escaped because their output happened to be a single line.
+$rows += Try-Op "cmd.exe" "read"      { $o = (cmd /c "type $d\a.txt") -join "`n"; if ($o -notmatch "hello") { throw "content mismatch: $o" } }
 $rows += Try-Op "cmd.exe" "write"     { cmd /c "echo more>> $d\a.txt" | Out-Null }
 $rows += Try-Op "cmd.exe" "rename"    { cmd /c "ren $d\a.txt b.txt" | Out-Null; if (-not (Test-Path "$d\b.txt")) { throw "rename failed" } }
-$rows += Try-Op "cmd.exe" "enumerate" { $o = cmd /c "dir /b $d"; if ($o -notmatch "b.txt") { throw "not listed" } }
-$rows += Try-Op "cmd.exe" "properties"{ $o = cmd /c "dir $d\b.txt"; if ($o -notmatch "b.txt") { throw "no properties listed" } }
+$rows += Try-Op "cmd.exe" "enumerate" { $o = (cmd /c "dir /b $d") -join "`n"; if ($o -notmatch "b.txt") { throw "not listed" } }
+$rows += Try-Op "cmd.exe" "properties"{ $o = (cmd /c "dir $d\b.txt") -join "`n"; if ($o -notmatch "b.txt") { throw "no properties listed" } }
 $rows += Try-Op "cmd.exe" "delete"    { cmd /c "del /q $d\b.txt" | Out-Null; cmd /c "rmdir /s /q $d" | Out-Null; if (Test-Path $d) { throw "not removed" } }
 
 # ---- copy / xcopy ------------------------------------------------------
@@ -120,7 +127,12 @@ $md += "GUI rows are deliberately left for a human. Driving Explorer from a"
 $md += "script would put a filesystem call in a cell labelled ``Explorer``,"
 $md += "which is an unearned PASS in the exit gate."
 
-$failed = ($rows | Where-Object { $_.Result -eq "FAIL" }).Count
+# @() is load-bearing. Without it a pipeline matching exactly ONE object yields
+# a bare PSCustomObject whose .Count is $null, so $failed became null, the
+# report printed "29 ok,  failed", and the `if ($failed -gt 0)` gate below never
+# fired on a real failure. Caught on the first live run, which recorded a
+# cmd.exe failure and still exited 0.
+$failed = @($rows | Where-Object { $_.Result -eq "FAIL" }).Count
 $md += ""
 $md += "**Scripted result: $($rows.Count - $failed) ok, $failed failed.**"
 

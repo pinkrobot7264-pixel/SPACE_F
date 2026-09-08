@@ -15,7 +15,14 @@
 #
 # Exit code 0 = the signal was delivered. 1 = could not attach to the console.
 
-param([Parameter(Mandatory = $true)][int]$TargetPid)
+param(
+    [Parameter(Mandatory = $true)][int]$TargetPid,
+    # Written with UTC ticks the instant the signal is delivered. Callers that
+    # need to time a teardown must measure from THIS, not from before they
+    # launched this helper: starting a child PowerShell costs on the order of a
+    # second, which is long enough to hide the entire shutdown.
+    [string]$StampFile
+)
 
 Add-Type -Namespace SpaceW -Name Kernel -MemberDefinition @'
 [DllImport("kernel32.dll", SetLastError=true)] public static extern bool AttachConsole(uint dwProcessId);
@@ -29,6 +36,9 @@ if ([SpaceW.Kernel]::AttachConsole([uint32]$TargetPid)) {
     # TRUE adds a NULL handler, which means "ignore Ctrl-C in this process".
     [void][SpaceW.Kernel]::SetConsoleCtrlHandler([IntPtr]::Zero, $true)
     [void][SpaceW.Kernel]::GenerateConsoleCtrlEvent(0, 0)   # CTRL_C_EVENT, whole group
+    if ($StampFile) {
+        [IO.File]::WriteAllText($StampFile, [string]([DateTime]::UtcNow.Ticks))
+    }
     Start-Sleep -Milliseconds 500
     [void][SpaceW.Kernel]::FreeConsole()
     exit 0

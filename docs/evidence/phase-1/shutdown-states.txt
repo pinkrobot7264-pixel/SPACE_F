@@ -1,0 +1,24 @@
+﻿SPACE Phase 1 -- clean shutdown states (manual section 15.1)
+date: 2026-09-08T15:00:19.7941632+02:00
+
+PASS  state 1: no open handles  -- unmounted in 1091.7ms after the signal, exit code unavailable
+PASS  state 2: 10 open handles  -- unmounted in 602.7ms after the signal, exit code unavailable
+PASS  state 3: operation in flight  -- unmounted in 819ms after the signal, exit code unavailable
+PASS  state 4: operation hung via fault point  -- unmounted in 1523.4ms after the signal, exit code unavailable
+PASS  state 5: poisoned filesystem  -- unmounted in 4ms after the signal, exit code unavailable
+PASS  state 5 detail -- 'PANIC at FFI boundary' present in the log
+PASS  state 5 detail -- shutdown recorded reason=poisoned
+
+--- state 4, why it completes ---
+The read is genuinely blocked when the signal arrives: SPACE_FAULT armed
+winfsp_pre_read=hang, callback_timeout_ms is 30000ms, and the reader job has been
+waiting ~1.5s by then. Teardown still completes because it runs on the MAIN
+thread (ADR-0013a) and does not join the hung dispatcher callback: it moves to
+STOPPING, stops the dispatcher, removes the mount point and deletes the
+filesystem. The hung callback is abandoned with the process, which is why the
+measured time is far below both the callback deadline and shutdown_deadline_ms.
+
+
+os-safety-check exit: 0
+
+result: all five states PASS

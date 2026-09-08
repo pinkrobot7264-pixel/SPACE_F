@@ -65,15 +65,20 @@ function Win32Name($c) { if ($win32.ContainsKey([int]$c)) { $win32[[int]$c] } el
 
 # NTSTATUS values, mirroring client/core/src/ffi/ntstatus.rs. Only the constants
 # the rows below reference.
+#
+# The `L` suffix is load-bearing. PowerShell parses a bare 0xC0000033 as a
+# SIGNED Int32, which is negative, so [uint32] on it throws -- and the throw
+# left every expected value at 0, which made every row MISMATCH against a
+# perfectly correct observation. Int64 literals cast to uint32 cleanly.
 $NT = @{
-    STATUS_OBJECT_NAME_INVALID   = 0xC0000033
-    STATUS_OBJECT_NAME_NOT_FOUND = 0xC0000034
-    STATUS_OBJECT_NAME_COLLISION = 0xC0000035
-    STATUS_OBJECT_PATH_NOT_FOUND = 0xC000003A
-    STATUS_FILE_IS_A_DIRECTORY   = 0xC00000BA
-    STATUS_DIRECTORY_NOT_EMPTY   = 0xC0000101
-    STATUS_NOT_A_DIRECTORY       = 0xC0000103
-    STATUS_NAME_TOO_LONG         = 0xC0000106
+    STATUS_OBJECT_NAME_INVALID   = 0xC0000033L
+    STATUS_OBJECT_NAME_NOT_FOUND = 0xC0000034L
+    STATUS_OBJECT_NAME_COLLISION = 0xC0000035L
+    STATUS_OBJECT_PATH_NOT_FOUND = 0xC000003AL
+    STATUS_FILE_IS_A_DIRECTORY   = 0xC00000BAL
+    STATUS_DIRECTORY_NOT_EMPTY   = 0xC0000101L
+    STATUS_NOT_A_DIRECTORY       = 0xC0000103L
+    STATUS_NAME_TOO_LONG         = 0xC0000106L
 }
 
 # CreateFile special-cases one status: the kernel's generic translation of
@@ -149,8 +154,24 @@ $rows += Observe "open a directory as a file" "FileIsADirectory" "STATUS_FILE_IS
     $fs = [IO.File]::Open("$root\nts\full", [IO.FileMode]::Open, [IO.FileAccess]::Read)
     $fs.Dispose()
 }
-$rows += Observe "enumerate a file as a directory" "NotADirectory" "STATUS_NOT_A_DIRECTORY" {
-    [IO.Directory]::GetFiles("$root\nts\file.txt")
+# RemoveDirectory, not Directory.GetFiles.
+#
+# GetFiles appends a search pattern, making the path "...\file.txt\*", which the
+# Win32 path parser rejects with ERROR_INVALID_NAME before any I/O is issued --
+# the filesystem is never asked, so the row proved nothing about our
+# translation. Confirmed by log inspection: the last operation SPACE saw for
+# that path was get_security_by_name returning ok, and NotADirectory never
+# appeared in the log at all.
+#
+# RemoveDirectory does issue FILE_DIRECTORY_FILE against a file and yields
+# ERROR_DIRECTORY. Note for the reader: for this condition the status
+# originates in the WinFsp FSD, which sees FILE_DIRECTORY_FILE against the
+# non-directory attributes returned by GetSecurityByName and fails the request
+# without calling our Open at all. Our own NotADirectory mapping for this case
+# is real (memvfs open() and dir_open()) and is asserted in-process by the
+# conformance suite; it is simply not the layer that answers here.
+$rows += Observe "FILE_DIRECTORY_FILE against a file (RemoveDirectory)" "NotADirectory" "STATUS_NOT_A_DIRECTORY" {
+    [IO.Directory]::Delete("$root\nts\file.txt")
 }
 $rows += Observe "a reserved device name" "ObjectNameInvalid" "STATUS_OBJECT_NAME_INVALID" {
     [IO.File]::WriteAllText("$root\nts\CON", "x")
@@ -180,6 +201,16 @@ $md += "|---|---|---|---|---|---|---|"
 foreach ($r in $rows) {
     $md += "| $($r.Condition) | ``$($r.SpaceCode)`` | ``$($r.NtStatus)`` | ``$($r.Expected)`` | ``$($r.Win32)`` | $($r.Raw) | $($r.Result) |"
 }
+$md += ""
+$md += "**Provenance note for the ``NotADirectory`` row.** For that condition the"
+$md += "status is produced by the WinFsp FSD, not by SPACE: the FSD sees"
+$md += "``FILE_DIRECTORY_FILE`` against the non-directory attributes returned by"
+$md += "``GetSecurityByName`` and fails the request without calling our ``Open``."
+$md += "Verified by log inspection -- ``NotADirectory`` never appears in the client"
+$md += "log for this case. SPACE's own mapping for it is real (``memvfs::open`` and"
+$md += "``dir_open``) and is asserted in-process by the conformance suite; it is"
+$md += "simply not the layer that answers a Windows client here. The Win32 column"
+$md += "is still what section 12.4 asks for: what Windows reports for the condition."
 $md += ""
 $md += "``UNEXPECTED SUCCESS`` means the condition did not fail at all -- a defect in"
 $md += "the row or in the filesystem, not a translation problem. ``MISMATCH`` means"
