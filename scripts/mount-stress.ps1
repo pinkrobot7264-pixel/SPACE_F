@@ -43,12 +43,26 @@ for ($n = 1; $n -le $Iterations; $n++) {
     }
 
     if ($n % 2 -eq 0) {
-        # Graceful: Ctrl-C equivalent. SetConsoleCtrlHandler in the client
-        # signals the main thread, which owns teardown (ADR-0013a).
-        $forced++
-        Stop-Process -Id $p.Id -Force
-    } else {
+        # Graceful: Ctrl-C. SetConsoleCtrlHandler in the client signals the
+        # main thread, which owns teardown (ADR-0013a).
+        #
+        # This branch previously called Stop-Process -Force, identical to the
+        # branch below, while still counting itself as "graceful" -- so the
+        # script reported a 100/100 split having performed 200 force kills.
+        # The two paths are genuinely different (ADR-0013a main-thread teardown
+        # vs Class B process death) and a filesystem can pass one and fail the
+        # other, which is the entire point of section 16.1 alternating them.
         $graceful++
+        $r = Start-Process -FilePath "powershell" -PassThru -Wait -WindowStyle Hidden `
+            -ArgumentList @("-NoProfile", "-File", "$PSScriptRoot\send-ctrl-c.ps1", "-TargetPid", $p.Id)
+        if ($r.ExitCode -ne 0) {
+            Write-Host "FAIL  iteration $n : could not deliver Ctrl-C (graceful path untested)" -ForegroundColor Red
+            $fail++
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+        }
+    } else {
+        # Forced: Class B process death, no teardown runs at all.
+        $forced++
         Stop-Process -Id $p.Id -Force
     }
 
@@ -66,7 +80,7 @@ for ($n = 1; $n -le $Iterations; $n++) {
 }
 
 Write-Host ""
-Write-Host "$Iterations cycles complete ($graceful odd / $forced even)" -ForegroundColor Cyan
+Write-Host "$Iterations cycles complete ($graceful graceful Ctrl-C / $forced forced kill)" -ForegroundColor Cyan
 & "$PSScriptRoot\os-safety-check.ps1" -Since $since -Drive $Drive
 if ($LASTEXITCODE -ne 0) { $fail++ }
 

@@ -35,29 +35,8 @@ $lines += "SPACE Phase 1 -- clean shutdown states (manual section 15.1)"
 $lines += "date: $(Get-Date -Format o)"
 $lines += ""
 
-# Ctrl-C to another process, from an ISOLATED child PowerShell.
-#
-# GenerateConsoleCtrlEvent signals every process attached to the console, so
-# running it in-process would also signal this script. The child attaches to the
-# target's console, disables its own handler, signals, and exits.
-$ctrlC = {
-param($TargetPid)
-Add-Type -Namespace SpaceW -Name Kernel -MemberDefinition @'
-[DllImport("kernel32.dll", SetLastError=true)] public static extern bool AttachConsole(uint dwProcessId);
-[DllImport("kernel32.dll", SetLastError=true)] public static extern bool FreeConsole();
-[DllImport("kernel32.dll")] public static extern bool SetConsoleCtrlHandler(IntPtr HandlerRoutine, bool Add);
-[DllImport("kernel32.dll")] public static extern bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, uint dwProcessGroupId);
-'@
-[void][SpaceW.Kernel]::FreeConsole()
-if ([SpaceW.Kernel]::AttachConsole([uint32]$TargetPid)) {
-    [void][SpaceW.Kernel]::SetConsoleCtrlHandler([IntPtr]::Zero, $true)
-    [void][SpaceW.Kernel]::GenerateConsoleCtrlEvent(0, 0)   # CTRL_C_EVENT
-    Start-Sleep -Milliseconds 500
-    [void][SpaceW.Kernel]::FreeConsole()
-    exit 0
-}
-exit 1
-}
+# Ctrl-C delivery lives in scripts/send-ctrl-c.ps1 and MUST run as an isolated
+# child process -- see the comment there for why.
 
 function Start-Client([string]$fault) {
     if ($fault) { $env:SPACE_FAULT = $fault } else { Remove-Item Env:\SPACE_FAULT -ErrorAction SilentlyContinue }
@@ -74,7 +53,7 @@ function Start-Client([string]$fault) {
 
 function Send-CtrlC($p) {
     $r = Start-Process -FilePath "powershell" -PassThru -Wait -WindowStyle Hidden `
-        -ArgumentList @("-NoProfile", "-Command", "& {$ctrlC} $($p.Id)")
+        -ArgumentList @("-NoProfile", "-File", "$PSScriptRoot\send-ctrl-c.ps1", "-TargetPid", $p.Id)
     return ($r.ExitCode -eq 0)
 }
 
