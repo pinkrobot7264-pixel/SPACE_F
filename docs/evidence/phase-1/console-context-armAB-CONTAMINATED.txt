@@ -1,0 +1,45 @@
+SPACE Phase 1 -- console-context experiment, ARMS A AND B: INVALID / CONTAMINATED
+captured 2026-09-08T21:10:14+02:00
+
+Both arms are void. While they ran, the T10 fault-injection harness
+(powershell PID 11284, started 19:10:43) was still alive and repeatedly
+starting fault-injection clients against the same S: mount. Proof: when the
+surviving client 6188 was terminated, taskkill reported it as a child of PID
+11284. An earlier cleanup had killed the client (PID 1832) but not its parent
+harness, so the harness simply started another one.
+
+Two mount tests were therefore running concurrently, which is precisely the
+condition PHASE-1-CERTIFICATION.md 'Harness discipline' warns produces
+failures that look like defects and are not. No root-cause conclusion may be
+drawn from either arm.
+
+Arm B additionally never completed -- it blocked and was terminated.
+
+Kept as the record of a contaminated experiment. Superseded by the clean run.
+================================================================================
+--- ARM A (contaminated) ---
+=== console diagnostic [A-no-console-bash-redirected] ===
+harness pid            : 2444
+harness has console    : False
+procs on this console  : 3
+client pid             : 5676
+client mounted         : True
+AttachConsole(client)  : SUCCESS
+send-ctrl-c exit       : 0  (0 = delivered)
+client exited          : False
+S: released            : False
+cleaned up forcibly    : yes
+=== end [A-no-console-bash-redirected] ===
+
+--- ARM B (contaminated, incomplete) ---
+=== console diagnostic [B-own-console] ===
+harness pid            : 13076
+harness has console    : True
+procs on this console  : 1
+client pid             : 6960
+client mounted         : False
+AttachConsole(client)  : FAILED win32=87
+send-ctrl-c exit       : 1  (0 = delivered)
+client exited          : True
+S: released            : True
+=== end [B-own-console] ===

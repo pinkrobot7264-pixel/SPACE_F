@@ -36,6 +36,8 @@ $fail = 0
 $graceful = 0
 $forced = 0
 $consecutive = 0
+$gracefulProven = 0
+$forcedProven = 0
 $lines = @()
 $lines += "SPACE Phase 1 -- mount/unmount stress (manual section 16.1)"
 $lines += "date: $(Get-Date -Format o)"
@@ -49,7 +51,77 @@ function Write-Evidence {
     $script:lines -join "`r`n" | Out-File -Encoding utf8 $Out
 }
 
+Add-Type -Namespace MS -Name W -MemberDefinition @'
+[DllImport("kernel32.dll")] public static extern System.IntPtr GetConsoleWindow();
+'@
+
+# PRE-FLIGHT. Prove the graceful path can work in THIS launch context before
+# spending 200 cycles finding out that it cannot.
+#
+# A client inherits its Ctrl-C disposition from the process that creates it.
+# Started from a context where Ctrl-C is disabled -- bash with redirected
+# streams, a service, a detached job -- the client inherits "ignore Ctrl-C" and
+# the OS discards CTRL_C_EVENT before any registered handler runs. Nothing
+# fails loudly: AttachConsole succeeds, GenerateConsoleCtrlEvent returns
+# success, send-ctrl-c.ps1 exits 0, and the client simply carries on.
+#
+# Measured, both arms from a verified-clean machine, only the launch differing:
+#   bash + redirected streams : S: never released (67547ms), client never
+#                               exited, and the client logged NO shutdown line
+#                               at all -- the handler never ran.
+#   own console               : S: released in 307ms, client exited, log shows
+#                               "shutdown requested; unmounting" then "clean
+#                               shutdown" elapsed_ms=39.
+#
+# So refuse to start rather than produce a 100-cycle "graceful" half that
+# exercised nothing. This is a precondition on the harness, not a relaxation of
+# any product assertion.
+function Test-GracefulPathWorks {
+    $probeLog = "C:\SPACE\runtime\logs\stress-preflight.log"
+    if (Test-Path $probeLog) { [IO.File]::Delete($probeLog) }
+    $q = Start-Process -PassThru -FilePath $Exe -ArgumentList "--config", $Config `
+        -RedirectStandardOutput "C:\SPACE\runtime\logs\stress-preflight-out.log" `
+        -RedirectStandardError  $probeLog
+    for ($i = 0; $i -lt 60; $i++) { Start-Sleep -Milliseconds 250; if (Test-Path "$root\") { break } }
+    if (-not (Test-Path "$root\")) {
+        Stop-Process -Id $q.Id -Force -ErrorAction SilentlyContinue
+        return @{ Ok = $false; Why = "pre-flight client never mounted" }
+    }
+    $r = Start-Process -FilePath "powershell" -PassThru -Wait -WindowStyle Hidden `
+        -ArgumentList @("-NoProfile", "-File", "$PSScriptRoot\send-ctrl-c.ps1", "-TargetPid", $q.Id)
+    $released = $false
+    for ($i = 0; $i -lt 40; $i++) { Start-Sleep -Milliseconds 250; if (-not (Test-Path "$root\")) { $released = $true; break } }
+    $log = Get-Content $probeLog -Raw -ErrorAction SilentlyContinue
+    $clean = $log -and ($log -match "clean shutdown")
+    if (-not $released) {
+        Stop-Process -Id $q.Id -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+    }
+    if ($released -and $clean) { return @{ Ok = $true; Why = "" } }
+    return @{ Ok = $false; Why = "send-ctrl-c exited $($r.ExitCode), mount released=$released, clean-shutdown logged=$clean" }
+}
+
 Write-Host "=== mount/unmount stress: $Iterations cycles ===" -ForegroundColor Cyan
+Write-Host "pre-flight: verifying the graceful path works in this launch context..." -ForegroundColor DarkGray
+$hasConsole = [MS.W]::GetConsoleWindow() -ne [IntPtr]::Zero
+$pre = Test-GracefulPathWorks
+if (-not $pre.Ok) {
+    Write-Host "ABORT: the graceful shutdown path does not work in this launch context." -ForegroundColor Red
+    Write-Host "       $($pre.Why)" -ForegroundColor Red
+    Write-Host "       console window present: $hasConsole" -ForegroundColor Red
+    Write-Host "       Start this script with a console of its own, e.g." -ForegroundColor Yellow
+    Write-Host "         Start-Process powershell -ArgumentList '-File','scripts\mount-stress.ps1'" -ForegroundColor Yellow
+    Write-Host "       Running anyway would report a graceful/forced split having tested only forced kills." -ForegroundColor Yellow
+    $lines += "ABORT -- the graceful path does not work in this launch context: $($pre.Why)"
+    $lines += "        harness console window present: $hasConsole"
+    $lines += "        No cycles were run. A run from here would have reported a graceful half that exercised nothing."
+    Write-Evidence
+    exit 1
+}
+Write-Host "pre-flight OK: Ctrl-C reaches the client and it shuts down cleanly" -ForegroundColor Green
+$lines += "pre-flight: graceful path verified (Ctrl-C delivered, mount released, 'clean shutdown' logged)"
+$lines += "harness console window present: $hasConsole"
+$lines += ""
 
 for ($n = 1; $n -le $Iterations; $n++) {
     # A leftover mount makes every later Test-Path succeed, so an iteration
@@ -63,9 +135,11 @@ for ($n = 1; $n -le $Iterations; $n++) {
         break
     }
 
+    $iterLog = "C:\SPACE\runtime\logs\stress-err.log"
+    if (Test-Path $iterLog) { [IO.File]::Delete($iterLog) }
     $p = Start-Process -PassThru -FilePath $Exe -ArgumentList "--config", $Config `
         -RedirectStandardOutput "C:\SPACE\runtime\logs\stress-out.log" `
-        -RedirectStandardError  "C:\SPACE\runtime\logs\stress-err.log"
+        -RedirectStandardError  $iterLog
 
     $mounted = $false
     for ($i = 0; $i -lt 60; $i++) {
@@ -126,12 +200,36 @@ for ($n = 1; $n -le $Iterations; $n++) {
         $consecutive = 0
     }
 
+    # Prove WHICH path this cycle took, from the client's own log. A graceful
+    # cycle must show the ADR-0013a main-thread teardown; a forced cycle must
+    # NOT, because nothing runs after a Class B process death. Without this the
+    # two branches are indistinguishable in the evidence -- which is exactly how
+    # a harness that force-killed in both branches reported a 100/100 split for
+    # as long as it did.
+    $log = Get-Content $iterLog -Raw -ErrorAction SilentlyContinue
+    $cleanLogged = [bool]($log -and $log -match "clean shutdown")
+    if ($n % 2 -eq 0) {
+        if (-not $cleanLogged) {
+            Write-Host "FAIL  iteration $n : graceful cycle did not log a clean shutdown" -ForegroundColor Red
+            $lines += "FAIL  iteration $n -- graceful cycle released the mount but logged no clean shutdown; the ADR-0013a path did not run"
+            $fail++
+        } else { $gracefulProven++ }
+    } else {
+        if ($cleanLogged) {
+            Write-Host "FAIL  iteration $n : forced cycle logged a clean shutdown" -ForegroundColor Red
+            $lines += "FAIL  iteration $n -- forced cycle logged a clean shutdown; it was not a Class B process death"
+            $fail++
+        } else { $forcedProven++ }
+    }
+
     if ($n % 25 -eq 0) { Write-Host "  ...$n cycles" -ForegroundColor DarkGray }
 }
 
 Write-Host ""
 Write-Host "$Iterations cycles complete ($graceful graceful Ctrl-C / $forced forced kill)" -ForegroundColor Cyan
 $lines += "cycles attempted: $($graceful + $forced) ($graceful graceful Ctrl-C / $forced forced kill)"
+$lines += "paths proven from the client's own log: $gracefulProven graceful cycles logged a clean shutdown,"
+$lines += "  $forcedProven forced cycles logged none (a Class B death runs no teardown)"
 & "$PSScriptRoot\os-safety-check.ps1" -Since $since -Drive $Drive
 $osExit = $LASTEXITCODE
 $lines += "os-safety-check exit: $osExit"
