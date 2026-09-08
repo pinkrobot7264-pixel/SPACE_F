@@ -58,8 +58,23 @@ try {
     foreach ($t in $Targets) {
         Write-Host "=== $t ($Seconds s) ===" -ForegroundColor Cyan
         $started = Get-Date
-        $output = & cargo +nightly fuzz run $t -- -max_total_time=$Seconds -print_final_stats=1 2>&1 | Out-String
-        $code = $LASTEXITCODE
+
+        # Redirect to files rather than piping through Out-String.
+        #
+        # `& cargo ... 2>&1 | Out-String` DEADLOCKS: cargo-fuzz and libFuzzer are
+        # both chatty on stderr, and once PowerShell's pipeline buffer fills the
+        # child blocks on write while PowerShell blocks waiting for the child to
+        # exit. Observed exactly that way -- a target with a 30-minute budget sat
+        # for 95 minutes with its corpus and RSS frozen, which looks like a
+        # hanging fuzz target and is not one.
+        $log = Join-Path $env:TEMP "space-fuzz-$t.log"
+        $err = Join-Path $env:TEMP "space-fuzz-$t.err"
+        $proc = Start-Process -FilePath "cargo" -PassThru -NoNewWindow -Wait `
+            -ArgumentList @("+nightly", "fuzz", "run", $t, "--",
+                            "-max_total_time=$Seconds", "-print_final_stats=1") `
+            -RedirectStandardOutput $log -RedirectStandardError $err
+        $code = $proc.ExitCode
+        $output = (Get-Content $log, $err -Raw -ErrorAction SilentlyContinue) -join "`n"
         $elapsed = [math]::Round(((Get-Date) - $started).TotalSeconds)
 
         $runs = 0
