@@ -45,6 +45,7 @@ $rows += Try-Op "cmd.exe" "read"      { $o = cmd /c "type $d\a.txt"; if ($o -not
 $rows += Try-Op "cmd.exe" "write"     { cmd /c "echo more>> $d\a.txt" | Out-Null }
 $rows += Try-Op "cmd.exe" "rename"    { cmd /c "ren $d\a.txt b.txt" | Out-Null; if (-not (Test-Path "$d\b.txt")) { throw "rename failed" } }
 $rows += Try-Op "cmd.exe" "enumerate" { $o = cmd /c "dir /b $d"; if ($o -notmatch "b.txt") { throw "not listed" } }
+$rows += Try-Op "cmd.exe" "properties"{ $o = cmd /c "dir $d\b.txt"; if ($o -notmatch "b.txt") { throw "no properties listed" } }
 $rows += Try-Op "cmd.exe" "delete"    { cmd /c "del /q $d\b.txt" | Out-Null; cmd /c "rmdir /s /q $d" | Out-Null; if (Test-Path $d) { throw "not removed" } }
 
 # ---- copy / xcopy ------------------------------------------------------
@@ -72,6 +73,7 @@ $rows += Try-Op ".NET System.IO" "read"      { if ([IO.File]::ReadAllText("$d\a.
 $rows += Try-Op ".NET System.IO" "write"     { [IO.File]::AppendAllText("$d\a.txt","more") }
 $rows += Try-Op ".NET System.IO" "rename"    { [IO.File]::Move("$d\a.txt","$d\b.txt") }
 $rows += Try-Op ".NET System.IO" "enumerate" { if ([IO.Directory]::GetFiles($d).Count -ne 1) { throw "wrong count" } }
+$rows += Try-Op ".NET System.IO" "properties"{ $i = New-Object IO.FileInfo "$d\b.txt"; if ($i.Length -le 0) { throw "zero length" }; if ($i.LastWriteTimeUtc.Year -lt 2020) { throw "bad mtime" } }
 $rows += Try-Op ".NET System.IO" "delete"    { [IO.File]::Delete("$d\b.txt"); [IO.Directory]::Delete($d) }
 
 # ---- report ------------------------------------------------------------
@@ -109,7 +111,10 @@ $md += "| Explorer | \<human\> | \<human\> | \<human\> | \<human\> | \<human\> |
 $md += "| Notepad | \<human\> | \<human\> | \<human\> | -- | -- | -- | -- | GUI client -- see EXPLORER-CHECKLIST.md |"
 $md += "| 7-Zip | \<human\> | \<human\> | \<human\> | -- | -- | \<human\> | -- | GUI client -- see EXPLORER-CHECKLIST.md |"
 $md += ""
-$md += "`--` means the operation does not apply to that client."
+$md += "`--` means the operation does not apply to that client: `copy`, `xcopy` and"
+$md += "`robocopy` have no in-place write or rename of their own, and Notepad and"
+$md += "7-Zip do not rename or enumerate as filesystem clients. It does **not** mean"
+$md += '"not tested" -- every applicable cell above was executed.'
 $md += ""
 $md += "GUI rows are deliberately left for a human. Driving Explorer from a"
 $md += "script would put a filesystem call in a cell labelled ``Explorer``,"
@@ -125,5 +130,17 @@ $md -join "`r`n" | Out-File -Encoding utf8 $Out
 Write-Host ""
 $rows | Format-Table -AutoSize
 Write-Host "Written to $Out" -ForegroundColor Green
-if ($failed -gt 0) { Write-Host "$failed operation(s) failed -- recorded as observed" -ForegroundColor Yellow }
+
+# "Observed, not expected" governs what a CELL says -- it does not mean a
+# failure is swallowed. Every scripted client here is a documented Phase 1
+# target, so cmd.exe failing to rename is a defect, and exiting 0 on it would
+# let a real regression pass the gate while sitting in the evidence file
+# labelled FAIL. The GUI rows remain human-only and are not counted either way.
+if ($failed -gt 0) {
+    Write-Host "$failed scripted operation(s) FAILED -- see $Out" -ForegroundColor Red
+    $rows | Where-Object { $_.Result -eq "FAIL" } | ForEach-Object {
+        Write-Host "    $($_.Client) $($_.Op): $($_.Note)" -ForegroundColor Red
+    }
+    exit 1
+}
 exit 0

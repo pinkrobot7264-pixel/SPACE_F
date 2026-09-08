@@ -9,6 +9,22 @@
 # NTSTATUS -- and that translation is the kernel's, not ours.
 #
 # Table-driven, one row per callback-reachable code.
+#
+# WHAT THIS SCRIPT ASSERTS, and why it is written this way:
+#
+# An earlier version recorded all four columns but only ever checked that *an
+# error occurred*. Columns 2 and 3 were hand-typed labels the caller passed in,
+# and column 4 was never compared against them -- so a row that returned
+# ERROR_ACCESS_DENIED where STATUS_OBJECT_NAME_NOT_FOUND was expected was
+# written into the evidence table as a verified translation. A matrix nobody
+# checks is a table of assertions, not evidence.
+#
+# The expected Win32 value is therefore NOT typed in here either. It is computed
+# from the expected NTSTATUS by asking the OS, through ntdll!RtlNtStatusToDosError
+# -- the same function the kernel path uses. That keeps the author's memory of
+# the mapping out of the assertion entirely: the row states the NTSTATUS our code
+# claims to return, Windows says what that becomes, and the observed value must
+# match.
 
 param(
     [string]$Drive = "S",
@@ -22,6 +38,10 @@ if (-not (Test-Path "$root\")) {
     Write-Host "FAIL  $root is not mounted; start the client first" -ForegroundColor Red
     exit 1
 }
+
+Add-Type -Namespace SpaceNt -Name Rtl -MemberDefinition @'
+[DllImport("ntdll.dll")] public static extern uint RtlNtStatusToDosError(uint Status);
+'@
 
 # Win32 error codes, for naming what we observe.
 $win32 = @{
@@ -41,29 +61,66 @@ $win32 = @{
     267 = "ERROR_DIRECTORY"
     1392 = "ERROR_FILE_CORRUPT"
 }
+function Win32Name($c) { if ($win32.ContainsKey([int]$c)) { $win32[[int]$c] } else { "win32 $c" } }
 
-function Observe($label, $expectedCode, $expectedNtstatus, [scriptblock]$body) {
-    $hr = $null
-    $msg = ""
+# NTSTATUS values, mirroring client/core/src/ffi/ntstatus.rs. Only the constants
+# the rows below reference.
+$NT = @{
+    STATUS_OBJECT_NAME_INVALID   = 0xC0000033
+    STATUS_OBJECT_NAME_NOT_FOUND = 0xC0000034
+    STATUS_OBJECT_NAME_COLLISION = 0xC0000035
+    STATUS_OBJECT_PATH_NOT_FOUND = 0xC000003A
+    STATUS_FILE_IS_A_DIRECTORY   = 0xC00000BA
+    STATUS_DIRECTORY_NOT_EMPTY   = 0xC0000101
+    STATUS_NOT_A_DIRECTORY       = 0xC0000103
+    STATUS_NAME_TOO_LONG         = 0xC0000106
+}
+
+# CreateFile special-cases one status: the kernel's generic translation of
+# STATUS_OBJECT_NAME_COLLISION is ERROR_ALREADY_EXISTS, but a CREATE_NEW
+# disposition reports ERROR_FILE_EXISTS for the same status. Both are correct
+# for their call, so this row accepts either -- documented, not silent.
+$alternates = @{ 183 = @(80) }
+
+function Observe($label, $expectedCode, $ntName, [scriptblock]$body) {
+    $expectedNt = [uint32]$NT[$ntName]
+    $expectedWin32 = [SpaceNt.Rtl]::RtlNtStatusToDosError($expectedNt)
+
     try {
         & $body
         return [pscustomobject]@{
-            Condition = $label; SpaceCode = $expectedCode; NtStatus = $expectedNtstatus
-            Win32 = "(no error)"; Raw = ""; Result = "UNEXPECTED SUCCESS"
+            Condition = $label; SpaceCode = $expectedCode; NtStatus = $ntName
+            Expected = Win32Name $expectedWin32; Win32 = "(no error)"; Raw = ""
+            Result = "UNEXPECTED SUCCESS"
         }
     } catch {
         $ex = $_.Exception
+        $dotnet = $ex -is [ArgumentException]
         while ($ex.InnerException) { $ex = $ex.InnerException }
         $hr = $ex.HResult
-        $msg = $ex.Message
     }
 
     # A Win32 error surfaces as HRESULT 0x8007xxxx; the low 16 bits are the code.
     $code = $hr -band 0xFFFF
-    $name = if ($win32.ContainsKey($code)) { $win32[$code] } else { "win32 $code" }
+
+    if ($dotnet) {
+        # .NET rejected the path before any syscall, so the filesystem was never
+        # asked and this row proves nothing about our translation. Say so rather
+        # than banking it as a pass.
+        $result = "NOT REACHED (rejected by .NET path validation)"
+    } elseif ($code -eq $expectedWin32) {
+        $result = "match"
+    } elseif ($alternates.ContainsKey([int]$expectedWin32) -and
+              $alternates[[int]$expectedWin32] -contains [int]$code) {
+        $result = "match (documented alternate)"
+    } else {
+        $result = "MISMATCH"
+    }
+
     [pscustomobject]@{
-        Condition = $label; SpaceCode = $expectedCode; NtStatus = $expectedNtstatus
-        Win32 = $name; Raw = ("0x{0:X8}" -f $hr); Result = "observed"
+        Condition = $label; SpaceCode = $expectedCode; NtStatus = $ntName
+        Expected = Win32Name $expectedWin32; Win32 = Win32Name $code
+        Raw = ("0x{0:X8}" -f $hr); Result = $result
     }
 }
 
@@ -111,26 +168,41 @@ $md += "Win32 error Windows reports.** The first three are asserted in-process b
 $md += "``client/core/src/ffi/ntstatus.rs``; only the fourth can be observed from"
 $md += "outside, because that translation is the kernel's."
 $md += ""
+$md += "The **expected** Win32 column is not hand-written: it is computed from the"
+$md += "NTSTATUS by ``ntdll!RtlNtStatusToDosError``, so the row asserts what Windows"
+$md += "says the mapping is rather than what the script's author remembered."
+$md += ""
 $md += "- Generated: $(Get-Date -Format o)"
 $md += "- Mount: $root"
 $md += ""
-$md += "| injected condition | SPACE code | NTSTATUS | Win32 observed | HRESULT |"
-$md += "|---|---|---|---|---|"
+$md += "| injected condition | SPACE code | NTSTATUS | Win32 expected | Win32 observed | HRESULT | result |"
+$md += "|---|---|---|---|---|---|---|"
 foreach ($r in $rows) {
-    $md += "| $($r.Condition) | ``$($r.SpaceCode)`` | ``$($r.NtStatus)`` | ``$($r.Win32)`` | $($r.Raw) |"
+    $md += "| $($r.Condition) | ``$($r.SpaceCode)`` | ``$($r.NtStatus)`` | ``$($r.Expected)`` | ``$($r.Win32)`` | $($r.Raw) | $($r.Result) |"
 }
 $md += ""
-$md += "Rows marked ``UNEXPECTED SUCCESS`` mean the condition did not fail at all,"
-$md += "which is a defect in the row or in the filesystem -- not a translation"
-$md += "problem."
+$md += "``UNEXPECTED SUCCESS`` means the condition did not fail at all -- a defect in"
+$md += "the row or in the filesystem, not a translation problem. ``MISMATCH`` means"
+$md += "Windows reported something other than what our NTSTATUS translates to, which"
+$md += "is a translation defect. ``NOT REACHED`` means .NET rejected the path before"
+$md += "any syscall, so the row proves nothing and must not be counted as evidence."
 
 Remove-Item "$root\nts" -Recurse -Force -ErrorAction SilentlyContinue
 
 New-Item -ItemType Directory -Force -Path (Split-Path $Out) | Out-Null
 $md -join "`r`n" | Out-File -Encoding utf8 $Out
 
-$rows | Format-Table -AutoSize
-$bad = ($rows | Where-Object { $_.Result -ne "observed" }).Count
+$rows | Format-Table Condition, NtStatus, Expected, Win32, Result -AutoSize
 Write-Host "Written to $Out" -ForegroundColor Green
-if ($bad -gt 0) { Write-Host "$bad row(s) did not produce an error" -ForegroundColor Red; exit 1 }
+
+$bad = @($rows | Where-Object { $_.Result -eq "MISMATCH" -or $_.Result -eq "UNEXPECTED SUCCESS" })
+$unproven = @($rows | Where-Object { $_.Result -like "NOT REACHED*" })
+if ($unproven.Count -gt 0) {
+    Write-Host "$($unproven.Count) row(s) never reached the filesystem -- not evidence" -ForegroundColor Yellow
+}
+if ($bad.Count -gt 0) {
+    Write-Host "$($bad.Count) row(s) failed" -ForegroundColor Red
+    $bad | ForEach-Object { Write-Host "    $($_.Condition): expected $($_.Expected), got $($_.Win32)" -ForegroundColor Red }
+    exit 1
+}
 exit 0

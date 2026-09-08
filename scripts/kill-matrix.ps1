@@ -52,6 +52,8 @@ Write-Host "=== kill-while-mounted: $Iterations iterations x 3 states ===" -Fore
 
 foreach ($state in @("idle", "mid-write", "mid-enumeration")) {
     Write-Host "--- state: $state ---" -ForegroundColor Cyan
+    $stateFail = 0
+    $job = $null
 
     for ($n = 1; $n -le $Iterations; $n++) {
         $p = Start-Client
@@ -88,21 +90,28 @@ foreach ($state in @("idle", "mid-write", "mid-enumeration")) {
 
         if (-not (Wait-Released)) {
             Write-Host "FAIL  [$state $n] $root was not released after a force kill" -ForegroundColor Red
-            $fail++
+            $fail++; $stateFail++
         }
 
         # The client must be able to mount again immediately.
         $p2 = $null
         try { $p2 = Start-Client } catch {
             Write-Host "FAIL  [$state $n] remount failed: $($_.Exception.Message)" -ForegroundColor Red
-            $fail++
+            $fail++; $stateFail++
         }
         if ($p2) {
             Stop-Process -Id $p2.Id -Force
             Wait-Released | Out-Null
         }
     }
-    Write-Host "PASS  $state x $Iterations" -ForegroundColor Green
+    # Conditional. This line was previously printed unconditionally, so a state
+    # that recorded failures still logged "PASS <state> x 20" -- and that log is
+    # the evidence. The run-level exit code was correct; the transcript was not.
+    if ($stateFail -eq 0) {
+        Write-Host "PASS  $state x $Iterations" -ForegroundColor Green
+    } else {
+        Write-Host "FAIL  $state x $Iterations -- $stateFail failure(s) in this state" -ForegroundColor Red
+    }
 }
 
 Write-Host ""
