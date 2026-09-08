@@ -83,3 +83,27 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S16-5 | §16.5 | 4-hour soak with thresholds | `scripts/soak.ps1` | thresholds fixed in advance | NOT YET RUN | TODO |
 | R-S17-1 | §17.1 | `collect-evidence.ps1` | `scripts/collect-evidence.ps1` | manual run | pending final gate | IMPLEMENTING |
 | R-S17-2 | §17.2–17.7 | Six exit gates satisfied | n/a | final audit | see PHASE-1-CERTIFICATION.md | TESTING |
+
+---
+
+## Defects found during Phase 1, and where their regression lives
+
+The manual asks that every meaningful bug become a regression test where
+practical. All eight did.
+
+| # | Defect | Regression |
+|---|---|---|
+| 1 | `UmFileContextIsUserContext2` unset: `FileContext` was per file, not per file object | `scripts/mount-functional-test.ps1` (enumeration + recursive delete) — the unit layer cannot see it, because it is a WinFsp protocol property |
+| 2 | Enumeration marker resumed by membership, stranding delete-while-enumerating clients | `conformance/directory.rs`: `resume_from_a_marker_that_no_longer_exists`, `delete_while_enumerating_visits_every_entry` |
+| 3 | `os-safety-check.ps1` stale-volume check could never fail | verified by running the gate against a live mount and confirming it reports FAIL |
+| 4 | Same script inherited a non-zero exit code on success | explicit `exit 0`, reason recorded at the call site |
+| 5 | `cleanup`/`close` produced no log line | `ffi/log_tests.rs`: `every_boundary_line_carries_a_request_id` asserts both appear |
+| 6 | INV-FS-1 was unfalsifiable (computed allocation size) | `memvfs/tests.rs`: `fires_inv_fs_1_when_allocation_size_falls_below_file_size` |
+| 7 | Conformance `Ctx` leaked a handle per module | `conformance/boundaries.rs`: the L7 test asserts the exact count and names the shortfall |
+| 8 | A non-directory mid-path reported two different codes by depth | `conformance/create_open.rs`: `create_under_a_file_is_rejected` |
+| 9 | Enumeration was O(N²), making L6 unusable and starving the state lock | `memvfs/tests.rs`: `enumeration_work_per_call_does_not_grow_with_directory_size` |
+| 10 | Fuzz runner deadlocked on a PowerShell pipeline | `scripts/fuzz.ps1` uses file redirection; reason recorded at the call site |
+
+Defects 1, 2 and 9 were only reachable through a real mount. Defect 9 was found
+by the §15.2 kill matrix rather than by any test — at 5,000 entries with a
+concurrent enumeration loop, which is precisely the state the manual specifies.
