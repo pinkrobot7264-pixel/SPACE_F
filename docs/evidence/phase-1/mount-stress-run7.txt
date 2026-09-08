@@ -1,5 +1,5 @@
 ﻿SPACE Phase 1 -- mount/unmount stress (manual section 16.1)
-date: 2026-09-08T23:12:13.6593975+02:00
+date: 2026-09-08T22:54:02.5684788+02:00
 iterations: 200, alternating forced kill (odd) and graceful Ctrl-C (even)
 commit: fc9b070d1b70028a8e14144605ab51f13dc538ff
 
