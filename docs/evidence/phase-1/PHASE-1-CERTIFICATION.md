@@ -19,7 +19,7 @@ is written to be checkable by someone who does not trust it.
 | Implementation | **PASS** | full stack builds and mounts; `S:` serves Windows |
 | Build | **PASS** | debug + release, zero warnings, clippy clean workspace-wide |
 | Unit tests | **PASS** | 262 default profile, 175 with `fault-injection`, 146 in release |
-| Integration tests | **PASS** | mount functional test 19/19 against a live `S:` |
+| Integration tests | **PASS** | mount functional test 21/21 against a live `S:` |
 | Conformance | **PASS** | 11 modules, both capability variants, no WinFsp required |
 | Property tests | **PASS** | 9 proptest properties, seeds persisted |
 | Fuzzing | **PARTIAL** | 6 targets build and run clean under libFuzzer + ASan; the manual's >=30 min per target not yet completed |
@@ -28,7 +28,7 @@ is written to be checkable by someone who does not trust it.
 | Resource limits | **PASS** | L1–L8 at limit and limit+1 with state comparison |
 | Windows compatibility | **PARTIAL** | 4 scripted clients pass; Explorer/Notepad/7-Zip need a human |
 | Crash recovery | **IN PROGRESS** | kill matrix: idle ✅, mid-write ✅, mid-enumeration running |
-| Stress / soak | **PARTIAL** | 200 mount/unmount cycles PASS; 4-hour soak not yet run; enumeration scaling fixed and measured |
+| Stress / soak | **FAIL** | the 200-cycle §16.1 result is **WITHDRAWN** -- the harness force-killed in both branches while reporting a graceful/forced split, so the graceful half never ran (fixed in `3275f19`, re-run pending); §16.2 and the 4-hour soak not yet run; enumeration scaling fixed and measured |
 | Invariant validation | **PASS** | checker proven to fire (12 tests) and proven read-only (3 tests) |
 | Evidence | **PARTIAL** | collector written; several artifacts not yet produced |
 | Documentation | **PASS** | 5 protocol docs, 9 ADRs, 1 runbook, all matching the implementation |

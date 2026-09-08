@@ -228,6 +228,20 @@ while ((Get-Date) -lt $deadline) {
 }
 
 $jobs = @($wA, $wB, $wC, $wD)
+
+# Let the workers finish the round they are in. Each loops on the same deadline
+# and exits by itself, but a worker mid-robocopy can be several minutes past it
+# -- and a worker killed before its final Write-Output never reports its totals,
+# so a 30-minute run would end with worker D's round count simply absent.
+# Overshooting the window is harmless; losing the result is not.
+Write-Host "deadline reached; letting workers finish their current round..." -ForegroundColor DarkGray
+$null = Wait-Job $jobs -Timeout 900
+$stillRunning = @($jobs | Where-Object { $_.State -eq "Running" })
+if ($stillRunning.Count -gt 0) {
+    Write-Host "WARN  $($stillRunning.Count) worker(s) did not finish within 15 minutes of the deadline" -ForegroundColor Yellow
+    $lines += "WARN  $($stillRunning.Count) worker(s) were still running 15 minutes past the deadline and were stopped;"
+    $lines += "      their totals are missing from this report."
+}
 $jobs | Stop-Job -ErrorAction SilentlyContinue
 $output = $jobs | ForEach-Object { Receive-Job $_ -ErrorAction SilentlyContinue }
 $jobs | Remove-Job -Force -ErrorAction SilentlyContinue
