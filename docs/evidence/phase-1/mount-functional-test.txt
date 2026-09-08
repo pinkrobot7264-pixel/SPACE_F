@@ -17,8 +17,10 @@ PASS  timestamps are sane
 PASS  invalid names are rejected
 PASS  reading a nonexistent file fails cleanly
 PASS  robocopy a tree in and out
+PASS  share access is enforced by WinFsp, not by SPACE (ADR-0012)
+PASS  a deleted-but-open file stays readable (fs-semantics section 2)
 PASS  cleanup leaves the volume usable
 
-19 passed, 0 failed
+21 passed, 0 failed
 
 [exited with code 0]

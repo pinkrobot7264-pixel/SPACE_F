@@ -53,7 +53,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S8-2 | §8.1 | Full read/write matrix across 6 sizes | `memvfs/imp.rs` | `conformance/read_write.rs the_size_matrix` | test output | PASS |
 | R-S8-3 | §8.1 | read-after-write property test with seed | `vfs/properties.rs` | `write_then_read_returns_the_same_bytes` | proptest, seeds persisted | PASS |
 | R-S9-1 | §9.1 | `ReadDirectory` adapter: buffer-full, NULL marker, resume | `winfsp-adapter/src/callbacks.cpp` | 5,000-file enumeration | functional test PASS | PASS |
-| R-S9-2 | §9.2 | Explorer evidence, 10 steps | live mount | `scripts/mount-functional-test.ps1` | 19/19 PASS; GUI steps pending human | TESTING |
+| R-S9-2 | §9.2 | Explorer evidence, 10 steps | live mount | `scripts/mount-functional-test.ps1` | 21/21 PASS; GUI steps pending human | TESTING |
 | R-S10-1 | §10.1 | Rename/delete/metadata test rows | `memvfs/imp.rs` | `conformance/rename_delete.rs`, `metadata.rs` | test output | PASS |
 | R-S10-2 | §10.1 | Share access is WinFsp-owned | ADR-0012 (no code) | `mount-functional-test.ps1` share-access check | ERROR_SHARING_VIOLATION (32) observed on a live mount | PASS |
 | R-S11-1 | §11.1 | Conformance suite, 11 modules | `client/core/src/conformance/` | `run_conformance_suite` | 206 tests green | PASS |
