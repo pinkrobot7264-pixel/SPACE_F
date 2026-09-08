@@ -13,8 +13,21 @@ param(
     [int]$Iterations = 200,
     [string]$Drive = "S",
     [string]$Config = ".\config.toml",
-    [string]$Exe = ".\target\debug\space-client.exe"
+    [string]$Exe = ".\target\debug\space-client.exe",
+    [string]$Out = "docs\evidence\phase-1\mount-stress.txt"
 )
+
+# MUST RUN WITH A CONSOLE. The graceful branch delivers CTRL_C_EVENT, which
+# only exists for processes attached to a console, and a client inherits its
+# console from this script. Launching this script with its streams redirected
+# by a shell -- `powershell ... *> file` from bash, say -- leaves it without a
+# usable console, and the symptom is not an error: the first graceful cycle
+# appears to deliver the signal, the client never tears down, S: stays mounted,
+# and from then on `Test-Path S:` is true for every later iteration so each one
+# believes it mounted instantly. One 200-cycle run produced 299 failures that
+# way, none of them a filesystem defect. Start it with
+# `Start-Process powershell -ArgumentList '-File', '<this script>'`, which
+# gives it a console of its own, and let it write $Out itself.
 
 $ErrorActionPreference = "Continue"
 $root = "${Drive}:"
@@ -22,10 +35,34 @@ $since = Get-Date
 $fail = 0
 $graceful = 0
 $forced = 0
+$consecutive = 0
+$lines = @()
+$lines += "SPACE Phase 1 -- mount/unmount stress (manual section 16.1)"
+$lines += "date: $(Get-Date -Format o)"
+$lines += "iterations: $Iterations, alternating forced kill (odd) and graceful Ctrl-C (even)"
+$lines += "commit: $(git rev-parse HEAD)"
+$lines += ""
+
+function Write-Evidence {
+    $lines += ""
+    New-Item -ItemType Directory -Force -Path (Split-Path $Out) | Out-Null
+    $script:lines -join "`r`n" | Out-File -Encoding utf8 $Out
+}
 
 Write-Host "=== mount/unmount stress: $Iterations cycles ===" -ForegroundColor Cyan
 
 for ($n = 1; $n -le $Iterations; $n++) {
+    # A leftover mount makes every later Test-Path succeed, so an iteration
+    # that starts with S: already present is not testing anything -- it is
+    # reading the previous iteration's failure as its own success. Stop here
+    # instead: one clear failure beats 299 cascading ones burying it.
+    if (Test-Path "$root\") {
+        Write-Host "ABORT at iteration $n : $root was already present before starting a client" -ForegroundColor Red
+        $lines += "ABORT at iteration $n -- $root still present from the previous cycle; the run cannot continue honestly"
+        $fail++
+        break
+    }
+
     $p = Start-Process -PassThru -FilePath $Exe -ArgumentList "--config", $Config `
         -RedirectStandardOutput "C:\SPACE\runtime\logs\stress-out.log" `
         -RedirectStandardError  "C:\SPACE\runtime\logs\stress-err.log"
@@ -73,7 +110,20 @@ for ($n = 1; $n -le $Iterations; $n++) {
     }
     if (-not $released) {
         Write-Host "FAIL  iteration $n : unmount failed, $root still present" -ForegroundColor Red
+        $lines += "FAIL  iteration $n -- unmount failed, $root still present"
         $fail++
+        $consecutive++
+        # Force the leftover away so the next iteration's precondition check is
+        # meaningful rather than inheriting this failure.
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        if ($consecutive -ge 3) {
+            Write-Host "ABORT: $consecutive consecutive unmount failures" -ForegroundColor Red
+            $lines += "ABORT after $consecutive consecutive unmount failures at iteration $n"
+            break
+        }
+    } else {
+        $consecutive = 0
     }
 
     if ($n % 25 -eq 0) { Write-Host "  ...$n cycles" -ForegroundColor DarkGray }
@@ -81,9 +131,20 @@ for ($n = 1; $n -le $Iterations; $n++) {
 
 Write-Host ""
 Write-Host "$Iterations cycles complete ($graceful graceful Ctrl-C / $forced forced kill)" -ForegroundColor Cyan
+$lines += "cycles attempted: $($graceful + $forced) ($graceful graceful Ctrl-C / $forced forced kill)"
 & "$PSScriptRoot\os-safety-check.ps1" -Since $since -Drive $Drive
-if ($LASTEXITCODE -ne 0) { $fail++ }
+$osExit = $LASTEXITCODE
+$lines += "os-safety-check exit: $osExit"
+if ($osExit -ne 0) { $fail++ }
 
-if ($fail -gt 0) { Write-Host "`n$fail stress failure(s)" -ForegroundColor Red; exit 1 }
-Write-Host "`nmount/unmount stress OK" -ForegroundColor Green
+$lines += ""
+if ($fail -gt 0) {
+    $lines += "result: $fail FAILURE(S)"
+} else {
+    $lines += "result: PASS -- $Iterations cycles, $graceful graceful and $forced forced, every mount released"
+}
+Write-Evidence
+
+if ($fail -gt 0) { Write-Host "`n$fail stress failure(s) -- see $Out" -ForegroundColor Red; exit 1 }
+Write-Host "`nmount/unmount stress OK -- evidence in $Out" -ForegroundColor Green
 exit 0

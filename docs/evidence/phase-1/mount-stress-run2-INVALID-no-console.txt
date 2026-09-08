@@ -1,0 +1,1029 @@
+SPACE Phase 1 -- section 16.1 run of 2026-09-08 16:30, INVALID (harness launch defect)
+
+This run reported 299 failures. None was a filesystem defect. The harness was
+launched from bash with all streams redirected (powershell ... *> file), which
+left it without a usable console. CTRL_C_EVENT only exists for processes
+attached to a console and a client inherits its console from the harness, so the
+first graceful cycle did not tear the client down, S: stayed mounted, and every
+later iteration read that leftover as its own successful mount.
+
+Verified afterwards: the same alternation run with a console passes -- forced,
+graceful, forced, graceful all mounted, signalled, released and exited cleanly.
+
+Kept as the record of the failure and its cause. Superseded by mount-stress.txt.
+================================================================================
+﻿=== mount/unmount stress: 200 cycles ===
+FAIL  iteration 2 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 7824.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (7824:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 3 : unmount failed, S: still present
+FAIL  iteration 4 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 4 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1656.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1656:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 5 : unmount failed, S: still present
+FAIL  iteration 6 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 6 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8424.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8424:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 7 : unmount failed, S: still present
+FAIL  iteration 8 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 8 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9144.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9144:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 9 : unmount failed, S: still present
+FAIL  iteration 10 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 10 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 2284.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (2284:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 11 : unmount failed, S: still present
+FAIL  iteration 12 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 12 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12964.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12964:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 13 : unmount failed, S: still present
+FAIL  iteration 14 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 14 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 11672.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (11672:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 15 : unmount failed, S: still present
+FAIL  iteration 16 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 16 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8596.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8596:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 17 : unmount failed, S: still present
+FAIL  iteration 18 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 18 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9092.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9092:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 19 : unmount failed, S: still present
+FAIL  iteration 20 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 20 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12528.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12528:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 21 : unmount failed, S: still present
+FAIL  iteration 22 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 22 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9944.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9944:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 23 : unmount failed, S: still present
+FAIL  iteration 24 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 24 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4844.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4844:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 25 : unmount failed, S: still present
+  ...25 cycles
+FAIL  iteration 26 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 26 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9068.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9068:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 27 : unmount failed, S: still present
+FAIL  iteration 28 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 28 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12420.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12420:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 29 : unmount failed, S: still present
+FAIL  iteration 30 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 30 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 7496.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (7496:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 31 : unmount failed, S: still present
+FAIL  iteration 32 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 32 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4100.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4100:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 33 : unmount failed, S: still present
+FAIL  iteration 34 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 34 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4520.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4520:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 35 : unmount failed, S: still present
+FAIL  iteration 36 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 36 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12912.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12912:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 37 : unmount failed, S: still present
+FAIL  iteration 38 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 38 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5972.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5972:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 39 : unmount failed, S: still present
+FAIL  iteration 40 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 40 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8368.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8368:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 41 : unmount failed, S: still present
+FAIL  iteration 42 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 42 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12236.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12236:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 43 : unmount failed, S: still present
+FAIL  iteration 44 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 44 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8152.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8152:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 45 : unmount failed, S: still present
+FAIL  iteration 46 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 46 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1256.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1256:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 47 : unmount failed, S: still present
+FAIL  iteration 48 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 48 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1492.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1492:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 49 : unmount failed, S: still present
+FAIL  iteration 50 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 50 : unmount failed, S: still present
+  ...50 cycles
+Stop-Process : Cannot find a process with the process identifier 5904.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5904:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 51 : unmount failed, S: still present
+FAIL  iteration 52 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 52 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5496.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5496:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 53 : unmount failed, S: still present
+FAIL  iteration 54 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 54 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 7312.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (7312:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 55 : unmount failed, S: still present
+FAIL  iteration 56 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 56 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12052.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12052:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 57 : unmount failed, S: still present
+FAIL  iteration 58 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 58 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9828.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9828:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 59 : unmount failed, S: still present
+FAIL  iteration 60 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 60 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8864.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8864:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 61 : unmount failed, S: still present
+FAIL  iteration 62 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 62 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 6416.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6416:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 63 : unmount failed, S: still present
+FAIL  iteration 64 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 64 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 3952.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (3952:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 65 : unmount failed, S: still present
+FAIL  iteration 66 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 66 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5144.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5144:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 67 : unmount failed, S: still present
+FAIL  iteration 68 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 68 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5212.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5212:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 69 : unmount failed, S: still present
+FAIL  iteration 70 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 70 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12620.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12620:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 71 : unmount failed, S: still present
+FAIL  iteration 72 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 72 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 6000.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6000:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 73 : unmount failed, S: still present
+FAIL  iteration 74 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 74 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9076.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9076:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 75 : unmount failed, S: still present
+  ...75 cycles
+FAIL  iteration 76 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 76 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 2820.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (2820:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 77 : unmount failed, S: still present
+FAIL  iteration 78 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 78 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 13032.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (13032:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 79 : unmount failed, S: still present
+FAIL  iteration 80 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 80 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 7044.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (7044:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 81 : unmount failed, S: still present
+FAIL  iteration 82 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 82 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8836.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8836:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 83 : unmount failed, S: still present
+FAIL  iteration 84 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 84 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5296.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5296:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 85 : unmount failed, S: still present
+FAIL  iteration 86 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 86 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 7164.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (7164:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 87 : unmount failed, S: still present
+FAIL  iteration 88 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 88 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5028.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5028:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 89 : unmount failed, S: still present
+FAIL  iteration 90 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 90 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 3044.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (3044:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 91 : unmount failed, S: still present
+FAIL  iteration 92 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 92 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 10812.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (10812:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 93 : unmount failed, S: still present
+FAIL  iteration 94 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 94 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12328.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12328:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 95 : unmount failed, S: still present
+FAIL  iteration 96 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 96 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9412.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9412:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 97 : unmount failed, S: still present
+FAIL  iteration 98 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 98 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 10660.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (10660:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 99 : unmount failed, S: still present
+FAIL  iteration 100 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 100 : unmount failed, S: still present
+  ...100 cycles
+Stop-Process : Cannot find a process with the process identifier 6696.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6696:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 101 : unmount failed, S: still present
+FAIL  iteration 102 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 102 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 2820.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (2820:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 103 : unmount failed, S: still present
+FAIL  iteration 104 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 104 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12256.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12256:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 105 : unmount failed, S: still present
+FAIL  iteration 106 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 106 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5496.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5496:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 107 : unmount failed, S: still present
+FAIL  iteration 108 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 108 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 6188.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6188:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 109 : unmount failed, S: still present
+FAIL  iteration 110 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 110 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12076.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12076:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 111 : unmount failed, S: still present
+FAIL  iteration 112 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 112 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 13192.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (13192:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 113 : unmount failed, S: still present
+FAIL  iteration 114 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 114 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 2776.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (2776:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 115 : unmount failed, S: still present
+FAIL  iteration 116 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 116 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 11452.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (11452:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 117 : unmount failed, S: still present
+FAIL  iteration 118 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 118 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 11388.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (11388:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 119 : unmount failed, S: still present
+FAIL  iteration 120 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 120 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 6264.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6264:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 121 : unmount failed, S: still present
+FAIL  iteration 122 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 122 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 10660.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (10660:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 123 : unmount failed, S: still present
+FAIL  iteration 124 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 124 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5016.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5016:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 125 : unmount failed, S: still present
+  ...125 cycles
+FAIL  iteration 126 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 126 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4792.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4792:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 127 : unmount failed, S: still present
+FAIL  iteration 128 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 128 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9248.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9248:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 129 : unmount failed, S: still present
+FAIL  iteration 130 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 130 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12808.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12808:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 131 : unmount failed, S: still present
+FAIL  iteration 132 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 132 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9100.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9100:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 133 : unmount failed, S: still present
+FAIL  iteration 134 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 134 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4040.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4040:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 135 : unmount failed, S: still present
+FAIL  iteration 136 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 136 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12920.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12920:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 137 : unmount failed, S: still present
+FAIL  iteration 138 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 138 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9540.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9540:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 139 : unmount failed, S: still present
+FAIL  iteration 140 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 140 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9908.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9908:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 141 : unmount failed, S: still present
+FAIL  iteration 142 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 142 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 2224.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (2224:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 143 : unmount failed, S: still present
+FAIL  iteration 144 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 144 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 11940.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (11940:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 145 : unmount failed, S: still present
+FAIL  iteration 146 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 146 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 10424.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (10424:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 147 : unmount failed, S: still present
+FAIL  iteration 148 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 148 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 3556.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (3556:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 149 : unmount failed, S: still present
+FAIL  iteration 150 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 150 : unmount failed, S: still present
+  ...150 cycles
+Stop-Process : Cannot find a process with the process identifier 8252.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8252:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 151 : unmount failed, S: still present
+FAIL  iteration 152 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 152 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 3292.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (3292:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 153 : unmount failed, S: still present
+FAIL  iteration 154 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 154 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4076.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4076:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 155 : unmount failed, S: still present
+FAIL  iteration 156 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 156 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5412.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5412:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 157 : unmount failed, S: still present
+FAIL  iteration 158 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 158 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8476.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8476:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 159 : unmount failed, S: still present
+FAIL  iteration 160 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 160 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1656.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1656:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 161 : unmount failed, S: still present
+FAIL  iteration 162 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 162 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 4548.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (4548:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 163 : unmount failed, S: still present
+FAIL  iteration 164 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 164 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9300.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9300:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 165 : unmount failed, S: still present
+FAIL  iteration 166 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 166 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8284.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8284:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 167 : unmount failed, S: still present
+FAIL  iteration 168 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 168 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1984.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1984:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 169 : unmount failed, S: still present
+FAIL  iteration 170 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 170 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1396.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1396:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 171 : unmount failed, S: still present
+FAIL  iteration 172 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 172 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9456.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9456:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 173 : unmount failed, S: still present
+FAIL  iteration 174 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 174 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8380.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8380:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 175 : unmount failed, S: still present
+  ...175 cycles
+FAIL  iteration 176 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 176 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 10844.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (10844:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 177 : unmount failed, S: still present
+FAIL  iteration 178 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 178 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9280.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9280:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 179 : unmount failed, S: still present
+FAIL  iteration 180 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 180 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1324.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1324:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 181 : unmount failed, S: still present
+FAIL  iteration 182 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 182 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 11940.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (11940:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 183 : unmount failed, S: still present
+FAIL  iteration 184 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 184 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 5748.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (5748:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 185 : unmount failed, S: still present
+FAIL  iteration 186 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 186 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 12572.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (12572:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 187 : unmount failed, S: still present
+FAIL  iteration 188 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 188 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 13196.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (13196:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 189 : unmount failed, S: still present
+FAIL  iteration 190 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 190 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 3684.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (3684:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 191 : unmount failed, S: still present
+FAIL  iteration 192 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 192 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 9260.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (9260:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 193 : unmount failed, S: still present
+FAIL  iteration 194 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 194 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 8204.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (8204:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 195 : unmount failed, S: still present
+FAIL  iteration 196 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 196 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 1740.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (1740:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 197 : unmount failed, S: still present
+FAIL  iteration 198 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 198 : unmount failed, S: still present
+Stop-Process : Cannot find a process with the process identifier 6224.
+At C:\SPACE\src\space\scripts\mount-stress.ps1:66 char:9
++         Stop-Process -Id $p.Id -Force
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (6224:Int32) [Stop-Process], ProcessCommandException
+    + FullyQualifiedErrorId : NoProcessFoundForGivenId,Microsoft.PowerShell.Commands.StopProcessCommand
+ 
+FAIL  iteration 199 : unmount failed, S: still present
+FAIL  iteration 200 : could not deliver Ctrl-C (graceful path untested)
+FAIL  iteration 200 : unmount failed, S: still present
+  ...200 cycles
+
+200 cycles complete (100 graceful Ctrl-C / 100 forced kill)
+=== OS safety check since 09/08/2026 16:30:51 ===
+PASS  no unexpected shutdown
+PASS  no bugcheck
+FAIL  stale S: volume still registered with WinFsp:
+S:  \Device\Volume{13dfc896-ab8d-11f1-b0e3-0800271c3899}
+
+FAIL  client process still running: space-client (pid 9480)
+FAIL  S: still present
+
+3 OS-safety check(s) FAILED
+
+299 stress failure(s)
+EXIT=1
