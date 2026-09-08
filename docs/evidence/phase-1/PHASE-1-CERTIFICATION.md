@@ -121,6 +121,43 @@ hung fuzz *runner* look identical from outside; the only tell was that the
 corpus count had stopped moving. Worth remembering before trusting any
 long-running measurement in this project.
 
+### Harness discipline: run one mount test at a time
+
+The single most expensive mistake of this phase was not a code defect. Three
+long-running jobs were left competing for one mount: the §15.2 kill matrix,
+which **starts and force-kills clients in a loop**, ran for eight hours while
+the functional regression test and a performance measurement were driven against
+the same `S:`.
+
+The kill matrix was doing exactly its job. But every other test running at the
+same time saw its mount disappear mid-operation, and reported failures like
+*"The device is not ready"* and *"Cannot find path 'S:\many'"*. Seven such
+failures were investigated as though they were defects. They were not.
+
+Compounding it, the machine slept for ~5.7 hours mid-run. Wall-clock elapsed
+times spanning that sleep are meaningless — one fuzz target reported
+`slowest_unit_time_sec: 20550` and `average_exec_per_sec: 1`, which reads as a
+pathological hang and was nothing of the sort. Run counts and crash status
+remained valid; only the timings were destroyed.
+
+**Rules adopted, and worth carrying into Phase 2:**
+
+1. **Only one test may own the mount at a time.** The kill matrix, the stress
+   script and the functional test all assume exclusive use and none of them say
+   so. Anything that starts or kills clients is exclusive by definition.
+2. **Kill by identity, never by age.** An early cleanup killed PowerShell
+   processes started in the last 40 minutes and destroyed an in-progress fuzz
+   run and a measurement along with the intended target.
+3. **Distrust any wall-clock measurement that could span a suspend.** Two
+   independent clocks agreeing on an impossible duration means the clocks are
+   right and the assumption is wrong.
+
+One genuinely reassuring result came out of the mess: across a multi-hour system
+sleep with a mount live, there was **no bugcheck, no unexpected shutdown and no
+kernel dump**, and `S:` was still serving on resume. The only critical system
+events in the window were BitLocker driver and firmware events, which a
+user-mode filesystem cannot cause.
+
 ### A process mistake, recorded
 
 While cleaning up a runaway test I killed PowerShell processes by age rather

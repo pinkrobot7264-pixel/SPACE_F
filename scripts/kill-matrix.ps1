@@ -12,6 +12,11 @@
 # Run in three states, as the manual requires: idle, mid-write, and
 # mid-enumeration of a large directory.
 
+# EXCLUSIVE: this script starts and stops clients. Nothing else may use the
+# mount while it runs -- a concurrent test will see its mount vanish mid-call
+# and report failures that look like defects and are not. See
+# docs/evidence/phase-1/PHASE-1-CERTIFICATION.md, "Harness discipline".
+
 param(
     [int]$Iterations = 20,
     [string]$Drive = "S",

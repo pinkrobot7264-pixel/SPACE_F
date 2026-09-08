@@ -16,6 +16,11 @@
 # The last rule is checked directly by the workload: every iteration creates and
 # deletes, so a growing count is a leak (INV-FS-2, INV-RES-1).
 
+# EXCLUSIVE: this script starts and stops clients. Nothing else may use the
+# mount while it runs -- a concurrent test will see its mount vanish mid-call
+# and report failures that look like defects and are not. See
+# docs/evidence/phase-1/PHASE-1-CERTIFICATION.md, "Harness discipline".
+
 param(
     [int]$Minutes = 240,
     [int]$SampleSeconds = 300,

@@ -4,6 +4,11 @@
 # different paths (Class B process death vs the ADR-0013a main-thread teardown),
 # and a filesystem can pass one while failing the other.
 
+# EXCLUSIVE: this script starts and stops clients. Nothing else may use the
+# mount while it runs -- a concurrent test will see its mount vanish mid-call
+# and report failures that look like defects and are not. See
+# docs/evidence/phase-1/PHASE-1-CERTIFICATION.md, "Harness discipline".
+
 param(
     [int]$Iterations = 200,
     [string]$Drive = "S",
