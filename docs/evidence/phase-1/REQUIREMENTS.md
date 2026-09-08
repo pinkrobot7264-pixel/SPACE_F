@@ -70,11 +70,11 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S13-3 | §13.2 | Bounded callback under Hang, 7 assertions | `apply_fault` Hang | `fault_tests.rs` + `scripts/fault-injection-test.ps1` | in-process PASS; Explorer-responsive pending human | TESTING |
 | R-S13-4 | §13.4 | Near-miss delay succeeds | `apply_fault` Delay | `a_near_miss_delay_still_succeeds` | test output | PASS |
 | R-S13-5 | §13.5 | Invariant-targeting faults incl. Panic row | `apply_fault` | 6 fault-row tests | test output | PASS |
-| R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | `fuzz/fuzz_targets/*.rs` | `scripts/fuzz.ps1` | run in progress | TESTING |
+| R-S14-1 | §14.1 | Six fuzz targets, ≥30 min each | `fuzz/fuzz_targets/*.rs` | `scripts/fuzz.ps1` | 3 of 6 clean at 5 min (407k/163k/38k runs); ≥30 min budget outstanding | TESTING |
 | R-S14-2 | §14.2 | Property tests; seeds printed | `vfs/properties.rs` | 9 proptest properties | test output | PASS |
 | R-S14-3 | §14.3 | Limit & limit+1 with state comparison | `conformance/boundaries.rs` | L1-L8 tests | test output | PASS |
 | R-S15-1 | §15.1 | Clean shutdown in 5 states | `client/main/src/main.rs` | 200 stress cycles + poison path test | partial: hung-op case pending | TESTING |
-| R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | `scripts/kill-matrix.ps1` | idle+mid-write PASS | run in progress | TESTING |
+| R-S15-2 | §15.2 | Kill-while-mounted × 20, 3 states | `scripts/kill-matrix.ps1` | idle ✅ ×20, mid-write ✅ ×20 | mid-enumeration outstanding (run exclusively) | TESTING |
 | R-S15-3 | §15.3 | `stale-mount-recovery.md` runbook | `docs/runbooks/stale-mount-recovery.md` | n/a (prose) | on disk | PASS |
 | R-S16-1 | §16.1 | 200 mount/unmount cycles | `scripts/mount-stress.ps1` | 200 cycles, alternating | `mount-stress.txt`, os-safety OK | PASS |
 | R-S16-2 | §16.2 | 30-min I/O stress | `scripts/soak.ps1` (same workload) | size matrix + verify | NOT YET RUN | TODO |
