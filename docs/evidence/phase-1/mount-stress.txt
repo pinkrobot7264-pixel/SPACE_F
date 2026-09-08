@@ -1,0 +1,9 @@
+﻿SPACE Phase 1 -- mount/unmount stress (manual section 16.1)
+date: 2026-09-08T18:57:11.9117561+02:00
+iterations: 200, alternating forced kill (odd) and graceful Ctrl-C (even)
+commit: 85fe5182003ca93ae6c6189965c4257b9ea2b61a
+
+cycles attempted: 200 (100 graceful Ctrl-C / 100 forced kill)
+os-safety-check exit: 0
+
+result: PASS -- 200 cycles, 100 graceful and 100 forced, every mount released
