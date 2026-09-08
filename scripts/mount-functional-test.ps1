@@ -183,9 +183,19 @@ Check "share access is enforced by WinFsp, not by SPACE (ADR-0012)" {
             $fs2.Dispose()
         } catch {
             $threw = $true
+            # PowerShell wraps a failing [IO.File]::Open in a
+            # MethodInvocationException whose own HResult is 0x80131501 (the
+            # generic managed-exception code, 5377 once masked). The Win32
+            # status lives on the INNER IOException, so unwrap before masking --
+            # otherwise every failure reports 5377 and the assertion tests
+            # nothing.
+            $ex = $_.Exception
+            while ($ex.InnerException) { $ex = $ex.InnerException }
+            $code = $ex.HResult -band 0xFFFF
             # ERROR_SHARING_VIOLATION is 32; HRESULT 0x80070020.
-            $code = $_.Exception.HResult -band 0xFFFF
-            if ($code -ne 32) { throw "expected ERROR_SHARING_VIOLATION (32), got $code" }
+            if ($code -ne 32) {
+                throw "expected ERROR_SHARING_VIOLATION (32), got $code ($($ex.GetType().Name): $($ex.Message))"
+            }
         }
         if (-not $threw) { throw "a second open succeeded against FileShare::None" }
     } finally {
@@ -206,14 +216,30 @@ Check "a deleted-but-open file stays readable (fs-semantics section 2)" {
                           [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
     try {
         Remove-Item "$root\t1\ghost.txt" -Force
-        if (Test-Path "$root\t1\ghost.txt") { throw "path lookup still resolves after delete" }
+
+        # Deliberately NOT Test-Path here. On a file that is open with
+        # FILE_SHARE_DELETE and has a delete pending, Test-Path throws
+        # UnauthorizedAccessException -- that is Windows behaviour for a
+        # delete-pending path, not a filesystem defect, and asserting through it
+        # reports "Access is denied" for a case that is working correctly.
+        #
+        # The meaningful assertion is that the CONTENT is still readable through
+        # the surviving handle, which is what fs-semantics section 2 actually
+        # promises.
         $sr = New-Object IO.StreamReader($fs)
         $content = $sr.ReadToEnd()
         if ($content -ne "still here") { throw "content lost while deleted-but-open: '$content'" }
     } finally {
         $fs.Dispose()
     }
-    if (Test-Path "$root\t1\ghost.txt") { throw "file reappeared after the last close" }
+
+    # Once the last handle is gone the name must be free again -- proven by
+    # re-creating at it, which needs no Test-Path on a delete-pending path.
+    [IO.File]::WriteAllText("$root\t1\ghost.txt", "recreated")
+    if ([IO.File]::ReadAllText("$root\t1\ghost.txt") -ne "recreated") {
+        throw "the old node survived and shadowed the new one"
+    }
+    Remove-Item "$root\t1\ghost.txt" -Force
 }
 
 Check "cleanup leaves the volume usable" {

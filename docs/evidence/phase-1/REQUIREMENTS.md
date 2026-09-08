@@ -55,7 +55,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S9-1 | §9.1 | `ReadDirectory` adapter: buffer-full, NULL marker, resume | `winfsp-adapter/src/callbacks.cpp` | 5,000-file enumeration | functional test PASS | PASS |
 | R-S9-2 | §9.2 | Explorer evidence, 10 steps | live mount | `scripts/mount-functional-test.ps1` | 19/19 PASS; GUI steps pending human | TESTING |
 | R-S10-1 | §10.1 | Rename/delete/metadata test rows | `memvfs/imp.rs` | `conformance/rename_delete.rs`, `metadata.rs` | test output | PASS |
-| R-S10-2 | §10.1 | Share access is WinFsp-owned | ADR-0012 (no code) | needs 2-process exclusive open | NOT YET RUN | TODO |
+| R-S10-2 | §10.1 | Share access is WinFsp-owned | ADR-0012 (no code) | `mount-functional-test.ps1` share-access check | ERROR_SHARING_VIOLATION (32) observed on a live mount | PASS |
 | R-S11-1 | §11.1 | Conformance suite, 11 modules | `client/core/src/conformance/` | `run_conformance_suite` | 206 tests green | PASS |
 | R-S11-2 | §11.2 | Suite runs with no WinFsp; separate CI job | `conformance/` | `.github/workflows/ci.yml conformance-no-winfsp` | job asserts WinFsp absent | PASS |
 | R-S11-3 | §11.5 | `Capabilities` exactly one flag; both variants tested | `vfs/types.rs` | `capability_count_is_deliberate`, both runner tests | test output | PASS |
