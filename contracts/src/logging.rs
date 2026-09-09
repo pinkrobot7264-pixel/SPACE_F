@@ -53,9 +53,40 @@ pub enum LogSink<'a> {
     Buffer(SharedWriter),
 }
 
+/// Translate a configured level name to a filter.
+///
+/// The config loader already restricts `logging.level` to these five names, so
+/// the fallback is unreachable in practice; it exists so a bad value degrades
+/// to the documented default rather than panicking at startup.
+fn level_filter(level: &str) -> tracing_subscriber::filter::LevelFilter {
+    use tracing_subscriber::filter::LevelFilter;
+    match level.to_ascii_lowercase().as_str() {
+        "trace" => LevelFilter::TRACE,
+        "debug" => LevelFilter::DEBUG,
+        "info" => LevelFilter::INFO,
+        "warn" => LevelFilter::WARN,
+        "error" => LevelFilter::ERROR,
+        _ => LevelFilter::INFO,
+    }
+}
+
 /// Initialise the global subscriber. Idempotent within a process; a second call
 /// is a no-op so tests that each call it do not panic.
-pub fn init(component: &'static str, sink: LogSink<'_>) {
+///
+/// `level` is the configured minimum level. It used to be absent, and the layer
+/// was installed with **no filter at all** -- so `logging.level` was validated
+/// by the config loader, documented in `config.example.toml`, and then never
+/// consulted. Every `tracing::debug!` was written regardless, including the
+/// per-operation boundary line for every filesystem callback.
+///
+/// That was not merely untidy. Measured on the section 15.2 workload -- create
+/// 5,000 files one at a time in one directory -- the client managed 94
+/// creates/min with those lines going to a redirected stderr, and 14,087
+/// creates/min with stderr discarded: synchronous logging was ~150x the cost of
+/// the work. Debug versus release made almost no difference (91 vs 94), and the
+/// same loop against NTFS ran at 73,656 creates/min, so neither the build
+/// profile nor the harness was responsible.
+pub fn init(component: &'static str, sink: LogSink<'_>, level: &str) {
     let (writer, guard): (SharedWriter, Option<_>) = match sink {
         LogSink::Directory(dir) => {
             let _ = std::fs::create_dir_all(dir);
@@ -74,7 +105,9 @@ pub fn init(component: &'static str, sink: LogSink<'_>) {
 
     let layer = JsonLineLayer { component, writer };
     let _ = GUARD.set(guard);
-    let _ = tracing_subscriber::registry().with(layer).try_init();
+    let _ = tracing_subscriber::registry()
+        .with(layer.with_filter(level_filter(level)))
+        .try_init();
 }
 
 /// A shared in-memory buffer usable as a [`LogSink::Buffer`].

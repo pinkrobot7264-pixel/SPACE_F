@@ -63,7 +63,7 @@ async fn request_id_appears_verbatim_in_both_client_and_cloud_logs() {
         std::env::temp_dir().join(format!("space-client-log-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&client_log_dir);
     std::fs::create_dir_all(&client_log_dir).unwrap();
-    logging::init("space-client", LogSink::Directory(&client_log_dir));
+    logging::init("space-client", LogSink::Directory(&client_log_dir), "trace");
 
     // cloud-side logs -> the harness's SPACE_CLOUD_LOG_DIR (separate process)
     let env = space_test_harness::TestEnv::start("reqid-propagation").await;

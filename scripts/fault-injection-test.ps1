@@ -54,6 +54,27 @@ $root = "${Drive}:"
 $since = Get-Date
 $fail = 0
 $errLog = "C:\SPACE\runtime\logs\fault-err.log"
+
+# This harness REQUIRES debug-level client logging and says so explicitly.
+#
+# `logging.level` is now honoured (it used to be dead configuration), and the
+# shipped config is "info". Assertion 1 survives that -- a faulted callback is
+# logged at WARN -- but assertion 4, "no callback anywhere in the run exceeded
+# the bound", reads `duration_ms` from the per-operation "operation served"
+# line, which is DEBUG. At info level those lines do not exist, so the
+# assertion would quietly narrow to WARN/ERROR events only and still report
+# PASS. That is the exact failure mode this file has already been through once.
+#
+# So derive a debug-level config rather than depending on whatever the shipped
+# one happens to say. Every other harness is fine at info: mount-stress and
+# shutdown-states read "clean shutdown" (INFO), "FAULT INJECTION ARMED" (WARN)
+# and "PANIC at FFI boundary" (ERROR).
+$debugCfg = Join-Path $env:TEMP "space-fault-debuglog.toml"
+(Get-Content $Config -Raw) -replace '(?m)^\s*level\s*=\s*"[a-z]+"', 'level = "debug"' |
+    Out-File -Encoding utf8 $debugCfg
+$Config = $debugCfg
+$lines0 = Select-String -Path $Config -Pattern '^\s*level\s*=' | Select-Object -First 1
+Write-Host "client logging level for this run: $($lines0.Line.Trim())" -ForegroundColor DarkGray
 $lines = @()
 $lines += "SPACE Phase 1 -- fault injection through a live mount (sections 13.2, 13.3)"
 $lines += "date: $(Get-Date -Format o)"

@@ -76,7 +76,7 @@ pub fn prepare(args: &Args, log_sink: LogSink<'_>) -> Startup {
         Err(e) => return Startup::ConfigRejected(e),
     };
 
-    logging::init("space-client", log_sink);
+    logging::init("space-client", log_sink, &cfg.logging.level);
 
     let startup_id = RequestId::new();
     tracing::info!(

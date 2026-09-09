@@ -12,7 +12,7 @@ use contracts::{RequestId, SpaceError};
 #[test]
 fn every_line_is_json_with_all_required_keys_and_redaction_holds() {
     let (writer, buf) = logging::memory_sink();
-    logging::init("space-test", LogSink::Buffer(writer));
+    logging::init("space-test", LogSink::Buffer(writer), "trace");
 
     let token: Token = Token::new("wJalrXUtnFEMI-super-secret".to_string());
     assert_eq!(format!("{token}"), "[redacted]");

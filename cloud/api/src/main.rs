@@ -15,8 +15,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = std::env::var("SPACE_CLOUD_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_string());
 
     match std::env::var("SPACE_CLOUD_LOG_DIR") {
-        Ok(dir) => logging::init("space-cloud", LogSink::Directory(&PathBuf::from(dir))),
-        Err(_) => logging::init("space-cloud", LogSink::Stderr),
+        Ok(dir) => logging::init(
+            "space-cloud",
+            LogSink::Directory(&PathBuf::from(dir)),
+            "trace",
+        ),
+        Err(_) => logging::init("space-cloud", LogSink::Stderr, "trace"),
     }
 
     let state = Arc::new(AppState::default());
