@@ -13,7 +13,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S1-3 | §1.2 ADR-0007..0015 | Nine ADR documents written | `docs/decisions/ADR-0007..0015` | n/a (prose) | 9 files on disk | PASS |
 | R-S1-4 | §1.3 | 9 new `ErrorCode`s added and classified | `contracts/src/errors.rs` | `the_nine_phase_1_codes_are_present`, `all_slice_covers_every_variant` | 104 tests green | PASS |
 | R-S1-5 | §1.5 | `scripts/os-safety-check.ps1` exists and runs | `scripts/os-safety-check.ps1` | manual run | all 5 checks PASS, exit 0 | PASS |
-| R-S1-6 | §1.6 | Phase-2+ tech absent from Phase 1 | n/a | grep audit | see final audit | TESTING |
+| R-S1-6 | §1.6 | Phase-2+ tech absent from Phase 1 | n/a | dependency-graph audit + reachability analysis from the FFI entry points | `phase-2-tech-absence-audit.md` at `abaf369`: zero aws/s3/postgres/sqlx/etcd crates in Cargo.lock; `CloudClient` present in `client/core/src/lib.rs` but constructed nowhere in ffi/vfs/main. Observation recorded: `reqwest` still linked though unreachable | PASS (with observation) |
 | R-S2-1 | §2.2 | `space_core.h` C ABI header complete | `client/winfsp-adapter/include/space_core.h` | C++ static_asserts | compiles | PASS |
 | R-S2-2 | §2.3 | `guard()`: state check, `catch_unwind`, poison, NTSTATUS | `ffi/mod.rs guard` | `ffi/tests.rs` panic model (6 tests) | debug+release green | PASS |
 | R-S2-3 | §2.3 | `wstr()` length-capped UTF-16 conversion | `ffi/mod.rs wstr` | 7 string tests | test output | PASS |
@@ -29,7 +29,7 @@ Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING
 | R-S3-4 | §3.2 | `Vfs` trait + `OpCtx` + `VfsDiagnostics`; version = 1 | `vfs/mod.rs`, `vfs/invariants.rs` | `contract_version_is_one` | test output | PASS |
 | R-S3-5 | §3.3 | `fs-semantics.md` complete | `docs/protocols/fs-semantics.md` | conformance suite, 11 modules | 206 tests green | PASS |
 | R-S3-6 | §3.3.7 | `VfsPath` rejects every listed form | `vfs/path.rs` | one test per rule, 15 tests | test output | PASS |
-| R-S3-7 | §3.4 | `resource-limits.md`; L1-L10 with config keys | `vfs/limits.rs` | `defaults_match_the_documented_table` | test output | IMPLEMENTING |
+| R-S3-7 | §3.4 | `resource-limits.md`; L1-L10 with config keys | L1-L8 `vfs/limits.rs`; L9 `OpCtx` deadline; L10 `cfg.client.dispatcher_threads` -> `space_adapter_mount` -> `FspFileSystemStartDispatcher` (main.rs:131, host.cpp:98) | L1-L3 limit/limit+1 in `vfs/path.rs`; L4-L8 in `conformance/boundaries.rs`; L9 six deadline tests; L10 WinFsp-owned, limit+1 `n/a` per the doc | 20/20 targeted tests PASS at HEAD `abaf369` | PASS |
 | R-S3-8 | §3.5 | `vfs-invariants.md`; 22 invariants | `vfs/invariants.rs` | `the_invariant_list_matches_the_documented_count` + `coverage_tests.rs` (5 tests) | every invariant claimed and verified | PASS |
 | R-S3-9 | §3.5 | Checker read-only, non-repairing, deterministic | `memvfs/check.rs` | `checker_is_read_only_*` (3 tests, snapshot cmp) | test output | PASS |
 | R-S3-10 | §3.6 | `concurrency.md`; deadline-bounded lock | `memvfs/imp.rs state()` | `lock_acquisition_is_deadline_bounded` | test output | PASS |
