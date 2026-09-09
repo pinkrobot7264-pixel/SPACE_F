@@ -76,6 +76,23 @@ pub fn prepare(args: &Args, log_sink: LogSink<'_>) -> Startup {
         Err(e) => return Startup::ConfigRejected(e),
     };
 
+    // NOTE: `cfg.paths.log_dir` is deliberately NOT consulted here yet, and
+    // that is a recorded open defect, not an oversight -- see
+    // docs/evidence/phase-1/OPEN-ISSUE-logging-sink.md.
+    //
+    // Routing the default sink to the configured directory was implemented and
+    // then reverted, because the directory sink LOSES BUFFERED LINES AT EXIT.
+    // Measured: a graceful Ctrl-C shutdown wrote 1,250 bytes to the directory
+    // sink and the "clean shutdown" line was absent from all of it. That line
+    // is what mount-stress uses to prove the ADR-0013a graceful path actually
+    // ran, so switching the default would have turned all 100 graceful cycles
+    // of section 16.1 into false failures -- and, worse, would have moved
+    // certification onto a sink that silently drops the end of every run.
+    //
+    // The cause is structural: `logging::GUARD` is a `static`, and statics are
+    // not dropped at process exit, so tracing_appender's non-blocking worker is
+    // never drained. Honouring `paths.log_dir` requires fixing that first; the
+    // two must land together.
     logging::init("space-client", log_sink, &cfg.logging.level);
 
     let startup_id = RequestId::new();
