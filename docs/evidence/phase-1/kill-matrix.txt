@@ -1,0 +1,9 @@
+﻿SPACE Phase 1 -- kill-while-mounted (manual section 15.2)
+date: 2026-09-09T05:35:50.4779773+02:00
+iterations: 20 per state, states: idle, mid-write, mid-enumeration
+commit: 4a242e90f48e6d4fafe57d2cc2e89e5303ea3e82
+
+PASS  idle x 20 -- every kill released the mount and every remount succeeded
+PASS  mid-write x 20 -- every kill released the mount and every remount succeeded
+
+(run in progress -- states after this one had not started)
