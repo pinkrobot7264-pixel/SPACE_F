@@ -1,0 +1,18 @@
+﻿SPACE Phase 1 -- kill-while-mounted (manual section 15.2)
+date: 2026-09-10T09:02:53.1758023+02:00
+iterations: 20 per state, states: idle, mid-write, mid-enumeration
+commit: da21bdfe50077260a6658fdccdfd0041c19e9615
+
+PASS  idle x 20 -- every kill released the mount and every remount succeeded
+PASS  mid-write x 20 -- every kill released the mount and every remount succeeded
+PASS  mid-enumeration x 20 -- every kill released the mount and every remount succeeded
+
+os-safety-check exit: 0
+
+NOTE: this certifies Class B recovery -- Windows survives the filesystem
+process disappearing, with no bugcheck, hang, stale mount or orphan, and a
+clean remount. It does NOT certify durable filesystem recovery: Phase 1 has
+no persistence by design (section 15.4), so content loss after a kill is the
+correct outcome and crash-durability belongs to Phase 5.
+
+result: PASS -- all three states

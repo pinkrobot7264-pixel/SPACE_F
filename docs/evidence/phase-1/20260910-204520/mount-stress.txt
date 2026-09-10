@@ -1,0 +1,14 @@
+﻿SPACE Phase 1 -- mount/unmount stress (manual section 16.1)
+date: 2026-09-10T09:12:12.8175092+02:00
+iterations: 200, alternating forced kill (odd) and graceful Ctrl-C (even)
+commit: da21bdfe50077260a6658fdccdfd0041c19e9615
+
+pre-flight: graceful path verified (Ctrl-C delivered, mount released, 'clean shutdown' logged)
+harness console window present: True
+
+cycles attempted: 200 (100 graceful Ctrl-C / 100 forced kill)
+paths proven from the client's own log: 100 graceful cycles logged a clean shutdown,
+  100 forced cycles logged none (a Class B death runs no teardown)
+os-safety-check exit: 0
+
+result: PASS -- 200 cycles, 100 graceful and 100 forced, every mount released

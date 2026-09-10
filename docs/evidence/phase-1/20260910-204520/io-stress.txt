@@ -1,0 +1,18 @@
+﻿SPACE Phase 1 -- concurrent I/O stress (manual section 16.2)
+date: 2026-09-10T09:38:09.0620864+02:00
+duration: 30 minutes, four concurrent workers
+commit: da21bdfe50077260a6658fdccdfd0041c19e9615
+
+staged tree: 20 files, 500 MB, hashed with SHA-256
+
+--- worker totals ---
+  STAT A: 36438 verified round trips across the size matrix
+  STAT B: 2103 full enumerations of a 5000-entry directory
+  STAT C: 32056 verified renames between directories
+  STAT D: 54 hash-compared 500 MB robocopy round trips
+
+worker errors: none
+
+os-safety-check exit: 0
+
+result: PASS -- no errors across four concurrent workers

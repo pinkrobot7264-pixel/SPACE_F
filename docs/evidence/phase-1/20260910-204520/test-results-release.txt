@@ -1,0 +1,187 @@
+﻿cargo :     Finished `release` profile [optimized + debuginfo] target(s) in 1.64s
+At C:\SPACE\src\space\scripts\collect-evidence.ps1:93 char:74
++ ... st-results-release.txt" { cargo test -p space-client-core --release }
++                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 1.64s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+     Running unittests src\lib.rs (target\release\deps\space_client_core-0a49fd11501d38b5.exe)
+
+running 167 tests
+test conformance::runner_tests::contract_version_is_reported_by_the_implementation ... ok
+test conformance::runner_tests::the_suite_needs_no_windows_types ... ok
+test ffi::lifecycle::tests::poisoning_never_blocks_even_with_no_channel_installed ... ok
+test ffi::lifecycle::tests::repeated_poisoning_is_idempotent ... ok
+test ffi::lifecycle::tests::the_state_machine_advances_in_one_direction ... ok
+test ffi::log_tests::a_missing_file_probe_never_logs_at_error_level ... ok
+test ffi::log_tests::a_panic_logs_at_error_level_with_its_request_id ... ok
+test ffi::log_tests::every_boundary_line_carries_a_request_id ... ok
+test ffi::log_tests::file_content_never_reaches_the_log ... ok
+test ffi::ntstatus::tests::buffer_overflow_is_a_warning_not_an_error ... ok
+test ffi::ntstatus::tests::every_error_code_has_a_mapping_unless_it_is_startup_only ... ok
+test ffi::ntstatus::tests::from_error_code_is_total ... ok
+test ffi::ntstatus::tests::operation_timeout_maps_to_status_io_timeout ... ok
+test ffi::ntstatus::tests::the_mapping_is_deliberately_not_injective ... ok
+test ffi::ntstatus::tests::the_nine_phase_1_codes_map_to_the_manual_s_values ... ok
+test ffi::security::tests::conversion_is_deterministic ... ok
+test ffi::security::tests::the_default_descriptor_converts ... ok
+test ffi::security::tests::the_descriptor_is_small_enough_for_a_typical_query_buffer ... ok
+test ffi::tests::a_double_close_is_a_silent_no_op ... ok
+test ffi::tests::a_length_above_l4_is_rejected_before_any_allocation ... ok
+test ffi::tests::a_file_round_trips_through_the_c_abi ... ok
+test ffi::tests::a_null_buffer_with_a_nonzero_length_is_invalid_parameter ... ok
+test ffi::tests::a_null_out_handle_is_invalid_parameter_and_never_dereferenced ... ok
+test ffi::tests::a_null_path_is_rejected_without_dereferencing ... ok
+test ffi::tests::a_panic_inside_a_guarded_entry_point_returns_internal_error ... ok
+test ffi::tests::a_panic_poisons_the_filesystem ... ok
+test ffi::tests::an_expired_deadline_yields_status_io_timeout ... ok
+test ffi::tests::calls_before_start_are_rejected_rather_than_crashing ... ok
+test ffi::tests::close_and_cleanup_after_poisoning_are_silent_no_ops ... ok
+test ffi::tests::directory_enumeration_crosses_the_boundary ... ok
+test ffi::tests::every_out_pointer_is_checked ... ok
+test ffi::tests::forged_handles_and_cursors_never_resolve_across_the_boundary ... ok
+test ffi::tests::no_core_path_can_return_network_timeout ... ok
+test ffi::tests::start_with_a_missing_config_reports_a_startup_status ... ok
+test ffi::tests::poisoning_from_a_dispatcher_thread_does_not_deadlock ... ok
+test ffi::tests::start_with_a_null_config_path_is_rejected ... ok
+test ffi::tests::stop_is_idempotent ... ok
+test ffi::tests::the_next_callback_after_a_panic_fails_immediately ... ok
+test ffi::tests::the_panic_message_and_request_id_reach_the_log ... ok
+test ffi::tests::volume_info_crosses_the_boundary ... ok
+test ffi::tests::wstr_accepts_a_valid_surrogate_pair ... ok
+test ffi::tests::wstr_accepts_the_empty_string ... ok
+test ffi::tests::wstr_accepts_valid_ascii ... ok
+test ffi::tests::wstr_opt_maps_null_to_none ... ok
+test ffi::tests::wstr_rejects_40000_chars_without_a_nul_and_does_not_crash ... ok
+test ffi::tests::wstr_rejects_an_unpaired_surrogate ... ok
+test ffi::tests::wstr_rejects_null ... ok
+test ffi::types::tests::dir_entry_layout_matches_c ... ok
+test ffi::types::tests::every_file_info_field_is_where_c_expects_it ... ok
+test ffi::types::tests::file_info_converts_field_for_field ... ok
+test ffi::types::tests::file_info_layout_matches_c ... ok
+test ffi::types::tests::volume_info_layout_matches_c ... ok
+test startup::tests::parse_args_handles_the_supported_flags ... ok
+test startup::tests::missing_config_is_reported_with_its_code ... ok
+test time::tests::now_is_after_2020_and_advances ... ok
+test time::tests::one_second_after_the_epoch_is_ten_million_intervals_later ... ok
+test time::tests::the_unix_epoch_converts_to_the_known_value ... ok
+test vfs::config_map::tests::the_config_defaults_match_the_documented_limit_table ... ok
+test vfs::coverage_tests::every_checker_branch_has_a_firing_test ... ok
+test vfs::coverage_tests::every_claim_names_a_real_invariant ... ok
+test vfs::coverage_tests::every_claimed_location_actually_mentions_its_invariant ... ok
+test vfs::coverage_tests::every_documented_invariant_is_claimed ... ok
+test vfs::coverage_tests::the_checker_branches_are_exactly_the_ones_claimed_as_checker ... ok
+test vfs::ids::tests::arbitrary_raw_values_decode_without_panicking ... ok
+test vfs::ids::tests::encoding_matches_the_documented_formula ... ok
+test vfs::ids::tests::encoding_round_trips_across_the_range ... ok
+test vfs::ids::tests::generation_wraparound_skips_zero ... ok
+test vfs::ids::tests::handle_and_cursor_are_distinct_types ... ok
+test vfs::ids::tests::index_zero_generation_one_is_not_zero ... ok
+test vfs::ids::tests::no_identifier_derives_from_an_address ... ok
+test vfs::ids::tests::zero_is_never_a_valid_identifier ... ok
+test vfs::invariants::tests::a_violation_displays_its_id ... ok
+test vfs::invariants::tests::the_invariant_list_matches_the_documented_count ... ok
+test vfs::limits::tests::allocation_size_does_not_panic_near_u64_max ... ok
+test vfs::limits::tests::allocation_size_rounds_up_to_4096_and_never_below_file_size ... ok
+test vfs::limits::tests::defaults_match_the_documented_table ... ok
+test vfs::memvfs::table::tests::arbitrary_raw_values_never_panic ... ok
+test vfs::memvfs::table::tests::exceeding_the_limit_is_resource_exhausted_with_no_partial_state ... ok
+test vfs::memvfs::table::tests::free_twice_is_an_error_not_a_panic_or_double_free ... ok
+test vfs::memvfs::table::tests::freeing_after_exhaustion_makes_room_again ... ok
+test vfs::memvfs::table::tests::generation_mismatch_after_slot_reuse_does_not_reach_the_new_object ... ok
+test vfs::memvfs::table::tests::generation_wraparound_skips_zero ... ok
+test vfs::memvfs::table::tests::index_out_of_range_is_invalid_handle ... ok
+test vfs::memvfs::table::tests::iter_yields_only_live_slots_with_resolvable_ids ... ok
+test conformance::runner_tests::conformance_suite_passes_with_unicode_case_folding ... ok
+test vfs::memvfs::table::tests::resolve_after_free_is_invalid_handle ... ok
+test vfs::memvfs::table::tests::resolve_handle_zero_is_invalid_handle ... ok
+test vfs::memvfs::table::tests::resolve_never_allocated_handle_is_invalid_handle ... ok
+test vfs::memvfs::table::tests::wraparound_aliasing_residual_is_documented_not_silently_absent ... ok
+test vfs::memvfs::table::tests::ten_thousand_alloc_free_cycles_reuse_indices_and_advance_generations ... ok
+test vfs::memvfs::tests::a_deadline_already_expired_yields_operation_timeout_not_a_hang ... ok
+test conformance::runner_tests::conformance_suite_passes_with_ascii_case_folding ... ok
+test vfs::memvfs::tests::a_self_parent_reports_ns_2_first_by_documented_ordering ... ok
+test vfs::memvfs::tests::btree_map_gives_ascending_folded_order_for_free ... ok
+test vfs::memvfs::tests::check_invariants_passes_after_ordinary_activity ... ok
+test vfs::memvfs::tests::check_invariants_passes_on_a_fresh_empty_filesystem ... ok
+test vfs::memvfs::tests::a_marker_past_a_window_boundary_resumes_correctly ... ok
+test vfs::memvfs::tests::checker_does_not_change_any_subsequent_result ... ok
+test vfs::memvfs::tests::checker_is_read_only_even_when_it_reports_a_violation ... ok
+test vfs::memvfs::tests::checker_is_read_only_on_a_populated_fixture ... ok
+test vfs::memvfs::tests::every_checker_branch_has_a_firing_test ... ok
+test vfs::memvfs::tests::fires_inv_fs_1_when_allocation_size_falls_below_file_size ... ok
+test vfs::memvfs::tests::fires_inv_fs_1_when_allocation_size_is_not_a_multiple_of_the_unit ... ok
+test vfs::memvfs::tests::fires_inv_fs_2_when_a_node_claims_opens_no_handle_backs ... ok
+test vfs::memvfs::tests::fires_inv_fs_2_when_open_count_disagrees_with_live_handles ... ok
+test vfs::memvfs::tests::fires_inv_fs_4_when_an_unlinked_node_was_not_reclaimed ... ok
+test vfs::memvfs::tests::a_directory_larger_than_one_window_enumerates_completely ... ok
+test vfs::memvfs::tests::fires_inv_id_2_on_a_duplicate_index_number ... ok
+test vfs::memvfs::tests::fires_inv_ns_1_when_the_root_is_malformed ... ok
+test vfs::memvfs::tests::fires_inv_id_4_when_a_handle_references_a_dead_node ... ok
+test vfs::memvfs::tests::fires_inv_ns_2_when_a_linked_node_has_no_parent ... ok
+test vfs::memvfs::tests::fires_inv_ns_2_when_a_node_is_not_in_its_parent ... ok
+test vfs::memvfs::tests::fires_inv_ns_3_on_a_parent_chain_longer_than_l3 ... ok
+test vfs::memvfs::tests::fires_inv_ns_4_when_a_node_is_its_own_ancestor ... ok
+test vfs::memvfs::tests::fires_inv_ns_5_when_a_child_key_disagrees_with_its_display_name ... ok
+test vfs::memvfs::tests::fires_inv_res_1_when_a_directory_exceeds_l6 ... ok
+test vfs::memvfs::tests::fires_inv_res_1_when_total_bytes_exceeds_max_bytes ... ok
+test vfs::memvfs::tests::handle_and_cursor_counts_return_to_baseline ... ok
+test vfs::memvfs::tests::index_numbers_are_strictly_increasing_and_never_reused ... ok
+test vfs::memvfs::tests::slab_reuse_does_not_leak_nodes ... ok
+test vfs::path::tests::a_40000_char_path_is_rejected_without_panicking ... ok
+test vfs::path::tests::accepts_simple_and_nested_paths ... ok
+test vfs::path::tests::accepts_the_root ... ok
+test vfs::path::tests::accepts_unicode_and_spaces_inside_a_component ... ok
+test vfs::path::tests::ascii_folding_collides_a_with_lowercase_a_but_not_angstrom ... ok
+test vfs::path::tests::display_round_trips_through_parse ... ok
+test vfs::path::tests::folding_preserves_the_display_name ... ok
+test vfs::path::tests::inv_ns_6_traversal_forms_are_rejected ... ok
+test vfs::path::tests::is_ancestor_of_detects_subtree_containment ... ok
+test vfs::path::tests::join_enforces_l3 ... ok
+test vfs::path::tests::join_validates_the_new_component ... ok
+test vfs::path::tests::l1_path_length_at_limit_and_limit_plus_one ... ok
+test vfs::path::tests::l2_component_length_at_limit_and_limit_plus_one ... ok
+test vfs::path::tests::l3_path_depth_at_limit_and_limit_plus_one ... ok
+test vfs::path::tests::rejects_colon_in_a_component ... ok
+test vfs::path::tests::rejects_control_and_bidi_override_characters ... ok
+test vfs::path::tests::rejects_dot_and_dotdot_components ... ok
+test vfs::path::tests::rejects_embedded_nul ... ok
+test vfs::path::tests::rejects_empty ... ok
+test vfs::path::tests::rejects_no_leading_backslash ... ok
+test vfs::path::tests::rejects_repeated_separators ... ok
+test vfs::path::tests::rejects_reserved_device_names_with_or_without_extension ... ok
+test vfs::path::tests::rejects_trailing_separator ... ok
+test vfs::path::tests::rejects_trailing_space_or_dot_in_a_component ... ok
+test vfs::path::tests::rejects_windows_forbidden_characters ... ok
+test vfs::path::tests::unicode_folding_collides_angstrom_too ... ok
+test vfs::properties::arbitrary_input_never_panics_or_breaks_an_invariant ... ok
+test vfs::properties::constrained_io_never_grows_the_file ... ok
+test vfs::properties::enumeration_halts_within_n_plus_2 ... ok
+test vfs::memvfs::tests::lock_acquisition_is_deadline_bounded ... ok
+test vfs::properties::handles_are_unique_and_freed_ids_never_resolve ... ok
+test vfs::properties::enumeration_is_complete_for_any_buffer_size ... ok
+test vfs::properties::path_display_round_trips ... ok
+test vfs::properties::rename_round_trip_leaves_the_tree_identical ... ok
+test vfs::properties::write_extends_the_file_to_offset_plus_length ... ok
+test vfs::tests::contract_version_is_one ... ok
+test vfs::tests::each_op_ctx_gets_a_distinct_request_id ... ok
+test vfs::tests::op_ctx_check_passes_before_the_deadline ... ok
+test vfs::tests::op_ctx_check_yields_operation_timeout_past_the_deadline ... ok
+test vfs::types::tests::basic_info_patch_treats_zero_as_no_change ... ok
+test vfs::types::tests::capability_count_is_deliberate ... ok
+test vfs::types::tests::cleanup_flags_read_the_delete_bit ... ok
+test vfs::types::tests::create_options_read_the_three_phase_1_bits ... ok
+test vfs::types::tests::invalid_file_attributes_also_means_no_change ... ok
+test vfs::properties::write_then_read_returns_the_same_bytes ... ok
+test vfs::memvfs::tests::enumeration_work_per_call_does_not_grow_with_directory_size ... ok
+test tests::client_reports_network_unavailable_when_nothing_listens ... ok
+
+test result: ok. 167 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.11s
+
+   Doc-tests space_client_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+cargo test -p core --release exit code: 0

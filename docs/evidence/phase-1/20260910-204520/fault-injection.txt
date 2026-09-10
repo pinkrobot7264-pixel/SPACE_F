@@ -1,0 +1,66 @@
+﻿SPACE Phase 1 -- fault injection through a live mount (sections 13.2, 13.3)
+date: 2026-09-10T19:46:49.8778789+02:00
+assertion 1 is measured on the CALLBACK (boundary-log duration_ms), not on the
+application call -- Windows retries, so the application call is retries x deadline.
+
+PASS  read  callbacks=3 slowest=30009ms bound=30500ms
+      application-visible time 61239ms (Windows retried the request 3x; context, not the pass condition)
+PASS  read  the application received a controlled error, not a hang
+PASS  read  unrelated-op completed while the fault was in flight; slowest callback anywhere=30009ms bound=30500ms
+      unrelated-op wall time 61703ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  read  unmount completed after the injected hang
+
+PASS  write  callbacks=2 slowest=30011ms bound=30500ms
+      application-visible time 60681ms (Windows retried the request 2x; context, not the pass condition)
+PASS  write  the application received a controlled error, not a hang
+PASS  write  unrelated-op completed while the fault was in flight; slowest callback anywhere=30011ms bound=30500ms
+      unrelated-op wall time 60608ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  write  unmount completed after the injected hang
+
+PASS  open  callbacks=7 slowest=30009ms bound=30500ms
+      application-visible time 30262ms (Windows retried the request 7x; context, not the pass condition)
+PASS  open  the application received a controlled error, not a hang
+PASS  open  unrelated-op completed while the fault was in flight; slowest callback anywhere=30009ms bound=30500ms
+      unrelated-op wall time 58173ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  open  unmount completed after the injected hang
+
+PASS  readdir  callbacks=2 slowest=30005ms bound=30500ms
+      application-visible time 30846ms (Windows retried the request 2x; context, not the pass condition)
+PASS  readdir  the application received a controlled error, not a hang
+PASS  readdir  unrelated-op completed while the fault was in flight; slowest callback anywhere=30005ms bound=30500ms
+      unrelated-op wall time 60071ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  readdir  unmount completed after the injected hang
+
+PASS  getinfo  callbacks=24 slowest=30011ms bound=30500ms
+      application-visible time 150483ms (Windows retried the request 24x; context, not the pass condition)
+FAIL  getinfo  the application saw success under an injected hang
+PASS  getinfo  unrelated-op completed while the fault was in flight; slowest callback anywhere=30011ms bound=30500ms
+      unrelated-op wall time 58329ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  getinfo  unmount completed after the injected hang
+
+PASS  rename  callbacks=1 slowest=30003ms bound=30500ms
+      application-visible time 31116ms (Windows retried the request 1x; context, not the pass condition)
+PASS  rename  the application received a controlled error, not a hang
+PASS  rename  unrelated-op completed while the fault was in flight; slowest callback anywhere=30003ms bound=30500ms
+      unrelated-op wall time 30657ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  rename  unmount completed after the injected hang
+
+--- bound scales with callback_timeout_ms (1000ms config) ---
+PASS  read @1000ms  callbacks=3 slowest=1011ms bound=1500ms
+      application-visible time 3024ms (Windows retried the request 3x; context, not the pass condition)
+PASS  read @1000ms  the application received a controlled error, not a hang
+PASS  read @1000ms  unrelated-op completed while the fault was in flight; slowest callback anywhere=1011ms bound=1500ms
+      unrelated-op wall time 2524ms (queued behind retries of the faulted request; context, not the pass condition)
+PASS  read @1000ms  unmount completed after the injected hang
+
+--- section 13.5 Panic row (ADR-0013 end to end) ---
+PASS  panic -- controlled error returned to the application
+PASS  panic -- poisoned filesystem unmounted itself (main thread, ADR-0013a)
+PASS  panic -- 'PANIC at FFI boundary' logged with request_id
+
+os-safety-check exit: 0
+
+NOTE: section 13.2 point 3 -- 'Explorer stays responsive' -- is a claim about
+the Windows shell and is NOT covered here. It remains NEEDS HUMAN.
+
+result: 1 FAILURE(S)

@@ -1,0 +1,18 @@
+﻿SPACE Phase 1 fuzzing (manual section 14.1)
+date: 2026-09-09T18:58:48.9875360+02:00
+per-target budget: 1800 seconds
+asan runtime: C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
+commit: abaf36938ba150b5738c5ad24d3291b7f290feb8
+
+PASS  fuzz_path  runs=12119776  seconds=1851
+PASS  fuzz_handle  runs=3332086  seconds=1806
+PASS  fuzz_cursor  runs=1964873  seconds=1805
+PASS  fuzz_read_args  runs=13996542  seconds=1806
+PASS  fuzz_write_args  runs=11485140  seconds=1807
+PASS  fuzz_op_sequence  runs=1089334  seconds=1807
+
+crash inputs: none
+
+NOTE: fuzzing proves the absence of panics, UB, hangs, invalid error
+codes and invariant violations over the inputs explored. It does NOT
+prove correctness, and the exit gate must not imply otherwise.

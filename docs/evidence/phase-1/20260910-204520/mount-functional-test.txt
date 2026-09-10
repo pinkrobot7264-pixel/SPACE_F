@@ -1,0 +1,24 @@
+﻿=== SPACE mount functional test on S: ===
+PASS  drive is present
+PASS  volume reports a size
+PASS  create a directory
+PASS  create, write and read back a text file
+PASS  append to a file
+PASS  10 MB round trip is hash-identical
+PASS  file size is reported correctly
+PASS  rename a file
+PASS  rename a folder
+PASS  delete a file
+PASS  delete a folder
+PASS  10-level nested path
+PASS  5,000 files in one directory enumerate completely
+PASS  enumeration is stable across repeated listings
+PASS  timestamps are sane
+PASS  invalid names are rejected
+PASS  reading a nonexistent file fails cleanly
+PASS  robocopy a tree in and out
+PASS  share access is enforced by WinFsp, not by SPACE (ADR-0012)
+PASS  a deleted-but-open file stays readable (fs-semantics section 2)
+PASS  cleanup leaves the volume usable
+
+21 passed, 0 failed

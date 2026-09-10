@@ -1,0 +1,8 @@
+﻿cargo :     Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.09s
+At C:\SPACE\src\space\scripts\collect-evidence.ps1:94 char:74
++ ...             { cargo clippy --workspace --all-targets -- -D warnings }
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `d...get(s) in 2.09s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+cargo clippy -D warnings exit code: 0
