@@ -9,7 +9,7 @@ The **expected** Win32 column is not hand-written: it is computed from the
 NTSTATUS by `ntdll!RtlNtStatusToDosError`, so the row asserts what Windows
 says the mapping is rather than what the script's author remembered.
 
-- Generated: 2026-09-08T14:46:12.4111014+02:00
+- Generated: 2026-09-10T09:00:26.2245751+02:00
 - Mount: S:
 
 | injected condition | SPACE code | NTSTATUS | Win32 expected | Win32 observed | HRESULT | result |

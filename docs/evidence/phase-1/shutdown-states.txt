@@ -1,11 +1,11 @@
 ﻿SPACE Phase 1 -- clean shutdown states (manual section 15.1)
-date: 2026-09-08T15:00:19.7941632+02:00
+date: 2026-09-10T09:00:57.8372021+02:00
 
-PASS  state 1: no open handles  -- unmounted in 1091.7ms after the signal, exit code unavailable
-PASS  state 2: 10 open handles  -- unmounted in 602.7ms after the signal, exit code unavailable
-PASS  state 3: operation in flight  -- unmounted in 819ms after the signal, exit code unavailable
-PASS  state 4: operation hung via fault point  -- unmounted in 1523.4ms after the signal, exit code unavailable
-PASS  state 5: poisoned filesystem  -- unmounted in 4ms after the signal, exit code unavailable
+PASS  state 1: no open handles  -- unmounted in 1055ms after the signal, exit code unavailable
+PASS  state 2: 10 open handles  -- unmounted in 1234.5ms after the signal, exit code unavailable
+PASS  state 3: operation in flight  -- unmounted in 1417.3ms after the signal, exit code unavailable
+PASS  state 4: operation hung via fault point  -- unmounted in 844.9ms after the signal, exit code unavailable
+PASS  state 5: poisoned filesystem  -- unmounted in 2.1ms after the signal, exit code unavailable
 PASS  state 5 detail -- 'PANIC at FFI boundary' present in the log
 PASS  state 5 detail -- shutdown recorded reason=poisoned
 

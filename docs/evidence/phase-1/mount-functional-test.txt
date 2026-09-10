@@ -1,4 +1,4 @@
-=== SPACE mount functional test on S: ===
+﻿=== SPACE mount functional test on S: ===
 PASS  drive is present
 PASS  volume reports a size
 PASS  create a directory
@@ -22,5 +22,3 @@ PASS  a deleted-but-open file stays readable (fs-semantics section 2)
 PASS  cleanup leaves the volume usable
 
 21 passed, 0 failed
-
-[exited with code 0]
