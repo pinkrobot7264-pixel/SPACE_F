@@ -174,16 +174,18 @@ $md += "- Working tree: $(if ($dirty) { '**DIRTY**' } else { 'clean' })"
 # documentation. Both facts are reported; neither replaces the other, and the
 # strict comparison above is unchanged.
 $lastCode = (git log -1 --format='%h %cI %s' -- ':!docs' 2>$null)
-$md += "- Last commit touching a path outside ``docs/``: $(if ($lastCode) { "``$lastCode``" } else { 'none found' })"
+$lastCodeText = if ($lastCode) { $lastCode } else { 'none found' }
+$md += "- Last commit touching a path outside docs/: $lastCodeText"
 if ($lastCode) {
     $lastCodeSha = ($lastCode -split ' ')[0]
     $touched = @(git show --name-only --format='' $lastCodeSha 2>$null | Where-Object { $_ -and $_ -notmatch '^docs/' })
-    $md += "- Files it changed outside ``docs/``: $(if ($touched.Count) { '`' + ($touched -join '`, `') + '`' } else { 'none' })"
+    $touchedText = if ($touched.Count) { $touched -join ', ' } else { 'none' }
+    $md += "- Files it changed outside docs/: $touchedText"
     $md += ""
     $md += "  A STALE artifact predates HEAD. Whether that matters depends on what"
     $md += "  changed in between: a commit touching only documentation or test"
     $md += "  scaffolding cannot alter product behaviour, while one touching"
-    $md += "  ``client/``, ``contracts/`` or ``scripts/`` may invalidate the run that"
+    $md += "  client/, contracts/ or scripts/ may invalidate the run that"
     $md += "  produced the artifact. This collector does not make that judgement --"
     $md += "  it reports both so the reader can."
 }
