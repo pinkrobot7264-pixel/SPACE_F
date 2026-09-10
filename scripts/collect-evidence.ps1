@@ -26,6 +26,16 @@ param([string]$Phase = "phase-1")
 $ErrorActionPreference = "Continue"
 $src = "docs\evidence\$Phase"
 $out = "$src\$(Get-Date -Format yyyyMMdd-HHmmss)"
+
+# Capture the working-tree state BEFORE creating the output directory.
+#
+# This used to be read after the directory existed, so the collector always saw
+# its own untracked output as a dirty tree and reported "WORKING TREE DIRTY" on
+# an otherwise clean checkout. Measured: the sole entry was
+# `?? docs/evidence/phase-1/<timestamp>/`. A gate that fails because of its own
+# side effect teaches the reader to ignore it.
+$dirtyBefore = @(git status --porcelain | Where-Object { $_ })
+
 New-Item -ItemType Directory -Force -Path $out, "$out\logs", "$out\fuzz" | Out-Null
 
 $fail = 0
@@ -55,7 +65,7 @@ Get-ChildItem docs\decisions\*.md | Select-Object Name,LastWriteTime |
 
 $headSha = (git rev-parse HEAD).Trim()
 $headDate = [datetime](git show -s --format=%cI HEAD)
-$dirty = (git status --porcelain) | Where-Object { $_ }
+$dirty = $dirtyBefore
 if ($dirty) {
     $notes += "WORKING TREE DIRTY at collection time -- the bundle does not describe a committed state."
     Write-Host "WARN  working tree is dirty" -ForegroundColor Yellow
@@ -157,6 +167,26 @@ $md += ""
 $md += "- Collected: $(Get-Date -Format o)"
 $md += "- Commit: ``$headSha`` (committed $($headDate.ToString('o')))"
 $md += "- Working tree: $(if ($dirty) { '**DIRTY**' } else { 'clean' })"
+
+# Staleness is judged against HEAD, strictly. But a reader deciding what a STALE
+# flag means needs to know whether HEAD actually changed anything testable since
+# the evidence was produced, or whether the intervening commits only touched
+# documentation. Both facts are reported; neither replaces the other, and the
+# strict comparison above is unchanged.
+$lastCode = (git log -1 --format='%h %cI %s' -- ':!docs' 2>$null)
+$md += "- Last commit touching a path outside ``docs/``: $(if ($lastCode) { "``$lastCode``" } else { 'none found' })"
+if ($lastCode) {
+    $lastCodeSha = ($lastCode -split ' ')[0]
+    $touched = @(git show --name-only --format='' $lastCodeSha 2>$null | Where-Object { $_ -and $_ -notmatch '^docs/' })
+    $md += "- Files it changed outside ``docs/``: $(if ($touched.Count) { '`' + ($touched -join '`, `') + '`' } else { 'none' })"
+    $md += ""
+    $md += "  A STALE artifact predates HEAD. Whether that matters depends on what"
+    $md += "  changed in between: a commit touching only documentation or test"
+    $md += "  scaffolding cannot alter product behaviour, while one touching"
+    $md += "  ``client/``, ``contracts/`` or ``scripts/`` may invalidate the run that"
+    $md += "  produced the artifact. This collector does not make that judgement --"
+    $md += "  it reports both so the reader can."
+}
 $md += ""
 $md += "## Checks run at collection time"
 $md += ""
@@ -188,7 +218,16 @@ if ($fail -eq 0 -and $outstanding.Count -eq 0) {
 $md -join "`r`n" | Out-File -Encoding utf8 "$out\MANIFEST.md"
 
 # ---- hashes -------------------------------------------------------------
-Get-ChildItem $out -Recurse -File | Get-FileHash | Export-Csv "$out\hashes.csv" -NoTypeInformation
+# Hash into a temp file OUTSIDE the bundle, then move it in.
+#
+# Writing straight to "$out\hashes.csv" made the pipeline enumerate the file it
+# was in the middle of creating: Get-FileHash then failed with "the process
+# cannot access the file ... because it is being used by another process", and
+# the bundle ended up with no hashes at all -- the one artifact that lets a
+# later reader tell whether the evidence they hold is the evidence produced.
+$hashTmp = Join-Path $env:TEMP "space-evidence-hashes-$(Get-Date -Format yyyyMMddHHmmss).csv"
+Get-ChildItem $out -Recurse -File | Get-FileHash | Export-Csv $hashTmp -NoTypeInformation
+Move-Item $hashTmp "$out\hashes.csv" -Force
 
 Write-Host ""
 Write-Host "Evidence written to $out" -ForegroundColor Cyan
