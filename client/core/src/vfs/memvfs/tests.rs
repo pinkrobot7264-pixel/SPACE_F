@@ -901,8 +901,27 @@ fn enumeration_work_per_call_does_not_grow_with_directory_size() {
         elapsed
     }
 
-    let small = time_one_dir_open(500);
-    let large = time_one_dir_open(5_000);
+    // Take the BEST of three rather than a single sample.
+    //
+    // A single sample failed in a full `cargo nextest run --workspace`, where
+    // 270 tests share the machine, and passed in isolation moments later. That
+    // is scheduler noise, not a change in the shape being measured: one
+    // preempted 20-call loop is enough to move a ratio. The minimum is the
+    // least-contended observation available, so it is the one that reflects the
+    // algorithm rather than the load.
+    //
+    // The assertion below is unchanged. A quadratic implementation shows ~10x
+    // in every sample, including the best one, so this does not blunt what the
+    // test detects -- it only stops an unrelated CPU spike from failing it.
+    fn best_of_three(n: usize) -> std::time::Duration {
+        (0..3)
+            .map(|_| time_one_dir_open(n))
+            .min()
+            .expect("three samples")
+    }
+
+    let small = best_of_three(500);
+    let large = best_of_three(5_000);
 
     // With the window, both do at most DIR_WINDOW work, so the ratio should be
     // near 1. A quadratic implementation would show ~10x here. The bound is
