@@ -115,22 +115,35 @@ function Start-Faulted($point, $action, $cfg) {
     # that was coming up fine. And the client MUST be killed before throwing --
     # the earlier version leaked it, which is how a hung space-client-fault.exe
     # outlived the run and held S: in a state where even Test-Path blocked.
-    # WALL-CLOCK bounded, not iteration-bounded.
+    # Readiness is detected WITHOUT touching the filesystem, and bounded in
+    # WALL CLOCK rather than by iteration count.
     #
-    # This loop used to be `for ($i = 0; $i -lt 720; $i++)` with a 250ms sleep,
-    # written for 180 seconds. That assumes Test-Path returns promptly. It does
-    # not when the armed fault is on the open path: `Test-Path "S:\"` IS an open
-    # of the root, so each iteration cost 250ms + the full 30s deadline and the
-    # loop became 720 x 30.25s = 6 hours. Measured: the open row ran 4h08m and
-    # produced 491 faulted callbacks, every one an open of "\", before being
-    # stopped at 491/720 -- see FINDING-13-3-open-row-nontermination.md.
+    # Both halves matter, and both were wrong before.
     #
-    # A deadline in seconds cannot be inflated by the thing it is waiting on.
+    # `Test-Path "S:\"` IS an open of the root. With winfsp_pre_open armed to
+    # hang, the readiness probe was itself the operation under test: every poll
+    # cost the full 30s deadline, the mount could never be declared ready, and
+    # the row never reached its trigger. Combined with an iteration-bounded loop
+    # (720 x 250ms, written for 180s) it became 720 x 30.25s = 6 hours. Measured:
+    # 491 faulted callbacks over 4h08m, every one an open of "\" -- see
+    # FINDING-13-3-open-row-nontermination.md.
+    #
+    # `fsptool lsvol` asks WinFsp which volumes are registered. That is answered
+    # from FspFileSystemSetMountPoint's own bookkeeping and never enters our
+    # callback table, so it reports the mount without perturbing the fault.
+    # Measured with winfsp_pre_open=hang armed: lsvol reported S: in 1 second,
+    # the seed then completed, and the trigger returned a controlled error in
+    # 30098ms. The row is reachable; the probe was the obstacle.
+    #
+    # This weakens no assertion. Every assertion the row makes is unchanged --
+    # only the way the harness decides the mount exists has stopped interfering
+    # with the measurement.
     $deadline = (Get-Date).AddSeconds($MountWaitSeconds)
     $up = $false
     while ((Get-Date) -lt $deadline) {
-        if (Test-Path "$root\") { $up = $true; break }
-        Start-Sleep -Milliseconds 250
+        $vols = (& "C:\Program Files (x86)\WinFsp\bin\fsptool-x64.exe" lsvol 2>&1 | Out-String)
+        if ($vols -match [regex]::Escape($root)) { $up = $true; break }
+        Start-Sleep -Milliseconds 200
     }
     if (-not $up) {
         # Record what the faulted callbacks did even though the mount never
