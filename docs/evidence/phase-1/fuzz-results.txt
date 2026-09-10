@@ -1,55 +1,15 @@
 ﻿SPACE Phase 1 fuzzing (manual section 14.1)
-date: 2026-09-08T10:10:22.3683581+02:00
+date: 2026-09-09T18:58:48.9875360+02:00
 per-target budget: 1800 seconds
 asan runtime: C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64
-commit: 6886fec5779aff95803c224ffccaef86a7ae22a2
+commit: abaf36938ba150b5738c5ad24d3291b7f290feb8
 
-PASS  fuzz_path  runs=10302521  seconds=1803
-PASS  fuzz_handle  runs=3290479  seconds=1803
-PASS  fuzz_cursor  runs=1535599  seconds=1803
-PASS  fuzz_read_args  runs=11312865  seconds=1804
-PASS  fuzz_write_args  runs=6005256  seconds=1804
-FAIL  fuzz_op_sequence  exit=1  seconds=912
-#157872	REDUCE cov: 1639 ft: 7953 corp: 725/41Kb lim: 226 exec/s: 565 rss: 598Mb L: 37/226 MS: 3 InsertByte-ShuffleBytes-EraseBytes-
-#158298	REDUCE cov: 1639 ft: 7953 corp: 725/41Kb lim: 226 exec/s: 563 rss: 599Mb L: 42/226 MS: 1 EraseBytes-
-#158329	REDUCE cov: 1639 ft: 7953 corp: 725/41Kb lim: 226 exec/s: 563 rss: 599Mb L: 46/226 MS: 1 EraseBytes-
-#158347	NEW    cov: 1639 ft: 7954 corp: 726/41Kb lim: 226 exec/s: 563 rss: 599Mb L: 219/226 MS: 3 InsertRepeatedBytes-CopyPart-PersAutoDict- DE: "Q\000\000\000"-
-#158904	NEW    cov: 1639 ft: 7960 corp: 727/41Kb lim: 226 exec/s: 563 rss: 600Mb L: 226/226 MS: 2 EraseBytes-CopyPart-
-#158962	NEW    cov: 1639 ft: 7965 corp: 728/41Kb lim: 226 exec/s: 561 rss: 601Mb L: 222/226 MS: 3 ChangeByte-CopyPart-InsertRepeatedBytes-
-#159299	NEW    cov: 1639 ft: 7987 corp: 729/41Kb lim: 226 exec/s: 560 rss: 601Mb L: 215/226 MS: 2 InsertRepeatedBytes-InsertByte-
-#159373	NEW    cov: 1639 ft: 7988 corp: 730/42Kb lim: 226 exec/s: 561 rss: 601Mb L: 221/226 MS: 4 ChangeByte-CrossOver-ChangeBit-InsertRepeatedBytes-
-#159612	REDUCE cov: 1639 ft: 7988 corp: 730/42Kb lim: 226 exec/s: 562 rss: 601Mb L: 85/226 MS: 4 ChangeBit-ShuffleBytes-ChangeBit-EraseBytes-
-#159663	NEW    cov: 1639 ft: 8000 corp: 731/42Kb lim: 226 exec/s: 562 rss: 602Mb L: 222/226 MS: 1 CMP- DE: "\302\377\377\377"-
-#159767	REDUCE cov: 1639 ft: 8000 corp: 731/42Kb lim: 226 exec/s: 560 rss: 602Mb L: 58/226 MS: 4 ChangeByte-ShuffleBytes-ChangeBit-EraseBytes-
-#160011	NEW    cov: 1639 ft: 8015 corp: 732/42Kb lim: 226 exec/s: 561 rss: 602Mb L: 189/226 MS: 4 EraseBytes-CopyPart-ChangeBit-CopyPart-
-#160207	NEW    cov: 1639 ft: 8024 corp: 733/42Kb lim: 226 exec/s: 560 rss: 602Mb L: 173/226 MS: 1 CopyPart-
-#160388	REDUCE cov: 1639 ft: 8024 corp: 733/42Kb lim: 226 exec/s: 558 rss: 602Mb L: 16/226 MS: 1 EraseBytes-
-#160678	REDUCE cov: 1639 ft: 8024 corp: 733/42Kb lim: 226 exec/s: 557 rss: 602Mb L: 134/226 MS: 5 ShuffleBytes-ChangeByte-CrossOver-CopyPart-EraseBytes-
-#160725	REDUCE cov: 1639 ft: 8024 corp: 733/42Kb lim: 226 exec/s: 558 rss: 602Mb L: 34/226 MS: 2 CrossOver-EraseBytes-
-#161267	REDUCE cov: 1639 ft: 8024 corp: 733/42Kb lim: 226 exec/s: 558 rss: 602Mb L: 73/226 MS: 2 ChangeByte-EraseBytes-
-
-thread '<unnamed>' (6884) panicked at fuzz_targets\fuzz_op_sequence.rs:170:13:
-invariant INV-ID-4 violated at step 11: handle references a dead node
-sequence:
-Create { name: 179, dir: true }
-Create { name: 14, dir: true }
-Probe { name: 255 }
-Cleanup { handle: 173, delete: true }
-Create { name: 173, dir: true }
-Probe { name: 255 }
-Cleanup { handle: 255, delete: true }
-Cleanup { handle: 13, delete: true }
-Probe { name: 255 }
-Probe { name: 255 }
-Probe { name: 255 }
-Close { handle: 255 }
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-error: process didn't exit successfully: `target\x86_64-pc-windows-msvc\release\fuzz_op_sequence.exe '-artifact_prefix=C:\SPACE\src\space\fuzz\artifacts\fuzz_op_sequence\' -max_total_time=1800 -print_final_stats=1 'C:\SPACE\src\space\fuzz\corpus\fuzz_op_sequence'` (exit code: 0xc0000409, STATUS_STACK_BUFFER_OVERRUN)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-Error: Fuzz target exited with exit code: 0xc0000409
-
+PASS  fuzz_path  runs=12119776  seconds=1851
+PASS  fuzz_handle  runs=3332086  seconds=1806
+PASS  fuzz_cursor  runs=1964873  seconds=1805
+PASS  fuzz_read_args  runs=13996542  seconds=1806
+PASS  fuzz_write_args  runs=11485140  seconds=1807
+PASS  fuzz_op_sequence  runs=1089334  seconds=1807
 
 crash inputs: none
 
