@@ -2,16 +2,16 @@
 
 Source of truth: `SPACE_Phase_1_Execution_Manual_FINAL.md`.
 
-> **The authoritative Phase 1 manual is EXTERNAL to this repository.** It is not
-> present anywhere under `C:\SPACE` (verified by filesystem search) and was
-> supplied out of band. This file is the repository's **derived 75-row
-> transcription** of it, each row citing its manual §. It is **not** the manual
-> and must not be treated as the original.
+> **The authoritative manual is now IN THIS REPOSITORY**, committed verbatim as
+> `SPACE_Phase_1_Execution_Manual_FINAL.md` — 116,397 bytes, 2,148 lines,
+> sha256 `0290f66252865a2d…`, byte-identical to the original (`cmp` clean).
+> Recovered from `C:\Users\betha\Downloads` on 2026-09-10; it had never been
+> under `C:\SPACE`, which is why earlier searches did not find it.
 >
-> Consequence for any audit performed against this file: **a requirement present
-> in the manual but absent from this transcription is invisible to that audit.**
-> Committing the manual verbatim would close that gap permanently and is
-> recommended before certification is signed off.
+> This file remains a **derived transcription** and is not the manual. Where the
+> two disagree, **the manual wins**. The gap that earlier audits carried — a
+> requirement present in the manual but absent here would have been invisible —
+> is now closable by reading the manual directly.
 
 Status vocabulary: `TODO` · `IMPLEMENTING` · `TESTING` · `FAILING` · `FIXING` · `PASS` · `BLOCKED` · `DEFERRED`.
 
