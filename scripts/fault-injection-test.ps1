@@ -46,7 +46,13 @@ param(
     [string]$Drive = "S",
     [string]$Config = ".\config.toml",
     [string]$Exe = ".\target\debug\space-client-fault.exe",
-    [string]$Out = "docs\evidence\phase-1\fault-injection.txt"
+    [string]$Out = "docs\evidence\phase-1\fault-injection.txt",
+    # Wall-clock budget for a faulted client to present a usable mount.
+    # 240s is generous against a 30s callback deadline: a mount needs a handful
+    # of callbacks, so a point that merely slows startup still fits, while a
+    # point that makes the volume permanently unusable fails fast instead of
+    # grinding for hours.
+    [int]$MountWaitSeconds = 240
 )
 
 $ErrorActionPreference = "Continue"
@@ -109,14 +115,51 @@ function Start-Faulted($point, $action, $cfg) {
     # that was coming up fine. And the client MUST be killed before throwing --
     # the earlier version leaked it, which is how a hung space-client-fault.exe
     # outlived the run and held S: in a state where even Test-Path blocked.
+    # WALL-CLOCK bounded, not iteration-bounded.
+    #
+    # This loop used to be `for ($i = 0; $i -lt 720; $i++)` with a 250ms sleep,
+    # written for 180 seconds. That assumes Test-Path returns promptly. It does
+    # not when the armed fault is on the open path: `Test-Path "S:\"` IS an open
+    # of the root, so each iteration cost 250ms + the full 30s deadline and the
+    # loop became 720 x 30.25s = 6 hours. Measured: the open row ran 4h08m and
+    # produced 491 faulted callbacks, every one an open of "\", before being
+    # stopped at 491/720 -- see FINDING-13-3-open-row-nontermination.md.
+    #
+    # A deadline in seconds cannot be inflated by the thing it is waiting on.
+    $deadline = (Get-Date).AddSeconds($MountWaitSeconds)
     $up = $false
-    for ($i = 0; $i -lt 720; $i++) {
-        Start-Sleep -Milliseconds 250
+    while ((Get-Date) -lt $deadline) {
         if (Test-Path "$root\") { $up = $true; break }
+        Start-Sleep -Milliseconds 250
     }
     if (-not $up) {
+        # Record what the faulted callbacks did even though the mount never
+        # became usable. For a point like winfsp_pre_open that is the whole
+        # dataset: assertion 1 is a claim about callback duration, and those
+        # callbacks happened even though the row's trigger was never reached.
+        # Throwing without reading them discards the only evidence the row
+        # produced.
+        # Point -> boundary operation name, mirroring fault_point_for() in
+        # client/core/src/ffi/mod.rs.
+        $opForPoint = @{
+            "winfsp_pre_read"    = "read"
+            "winfsp_pre_write"   = "write"
+            "winfsp_pre_open"    = "open"
+            "winfsp_pre_create"  = "create"
+            "winfsp_pre_readdir" = "dir_open"
+            "winfsp_pre_getinfo" = "get_file_info"
+            "winfsp_pre_rename"  = "rename"
+            "winfsp_pre_cleanup" = "cleanup"
+        }[$point]
+        $d = if ($opForPoint) { Get-CallbackDurations $opForPoint } else { @() }
+        $op = $opForPoint
+        $detail = if ($d.Count -gt 0) {
+            $mx = ($d | Measure-Object -Maximum).Maximum
+            $mn = ($d | Measure-Object -Minimum).Minimum
+            "$($d.Count) faulted '$op' callback(s) observed while waiting, min ${mn}ms max ${mx}ms"
+        } else { "no faulted '$op' callback observed while waiting" }
         Stop-Client $p
-        throw "mount did not appear within 180s"
+        throw "mount did not become usable within ${MountWaitSeconds}s with $point=$action armed; $detail"
     }
 
     # The fault MUST actually be armed. Without the fault-injection feature,

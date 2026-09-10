@@ -1,0 +1,11 @@
+client logging level for this run: level = "debug"               # "trace" | "debug" | "info" | "warn" | "error"
+=== fault injection through a live mount ===
+--- read  (point=winfsp_pre_read, timeout=30000ms) ---
+PASS  read : 3 callback(s), slowest 30007ms, bound 30500ms
+PASS  read : application received a controlled error
+PASS  read : unrelated op completed; slowest callback anywhere 30007ms
+--- write  (point=winfsp_pre_write, timeout=30000ms) ---
+PASS  write : 2 callback(s), slowest 30007ms, bound 30500ms
+PASS  write : application received a controlled error
+PASS  write : unrelated op completed; slowest callback anywhere 30007ms
+--- open  (point=winfsp_pre_open, timeout=30000ms) ---
