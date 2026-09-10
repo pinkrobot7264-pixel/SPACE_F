@@ -2,17 +2,30 @@
 
 **STATUS: NEEDS HUMAN — none of these has been performed.**
 
-Five validations require a person at the Windows machine. They are prepared
-here: what to do, what counts as a pass, and where to put the result. Nothing in
-this directory has been executed, simulated, or inferred from automated tests.
+Five validations require a person at the Windows machine. Nothing here has been
+executed, simulated, or inferred from automated tests.
 
-No automated result substitutes for any of them. Where an automated test covers
-an adjacent claim, that is stated so the human knows what is *not* already
-proven.
+**Every step below is taken from the authoritative manual**, now committed at
+`SPACE_Phase_1_Execution_Manual_FINAL.md`. Sections are cited so a reader can
+check the wording rather than trusting this file. An earlier version of this
+package was written from memory and was **looser than the manual in two places**
+— the Explorer steps and, more seriously, the ProcMon pass condition. Both are
+corrected here.
 
-## Before starting any of these
+These map onto the exit gates as follows:
 
-The machine must be clean, and `S:` must not already be mounted:
+| gate | bullet | covered by |
+|---|---|---|
+| §17.2 Windows safety | Explorer never becomes permanently unresponsive, including during injected hangs | **H4** |
+| §17.2 Windows safety | ProcMon evidence: writes confined to `runtime\logs` | **H5** |
+| §17.5 Functional | Explorer opens `S:` and enumerates the root | **H1** |
+| §17.5 Functional | Create/open/read/write/close/delete from Explorer, PowerShell, Notepad | **H1**, **H2** |
+| §17.5 Functional | Path traversal cannot escape the namespace — logically **and** by ProcMon | **H5** |
+| §17.7 Engineering | Compatibility matrix complete | **H1**, **H2**, **H3** |
+
+§17.2 states: **any single failure blocks Phase 1.**
+
+## Before starting
 
 ```powershell
 cd C:\SPACE\src\space
@@ -27,37 +40,38 @@ Mount for H1, H2, H3, H5:
 Start-Process .\target\release\space-client.exe -ArgumentList "--config",".\config.toml"
 ```
 
-Unmount when done: stop the `space-client` process, then confirm `S:` is gone
-and `lsvol` is empty.
+Stop the `space-client` process when done; confirm `S:` is gone and `lsvol` is empty.
 
 ---
 
-## H1 — Explorer, the ten steps (§9.2)
+## H1 — Explorer evidence (§9.2) — the ten steps verbatim
 
 **STATUS: NEEDS HUMAN**
 
-Perform each step in Explorer itself, not from a shell.
+Perform in Explorer itself, not from a shell. Mount, then:
 
-| # | step | pass condition |
-|---|---|---|
-| 1 | Open `S:` in Explorer | volume opens, no error dialog |
-| 2 | Create a folder via right-click → New → Folder | folder appears and persists after F5 |
-| 3 | Create a text file inside it | file appears |
-| 4 | Type into the file, save, close, reopen | content is what was typed |
-| 5 | Rename the file | new name shown, old name gone |
-| 6 | Copy a >10 MB file in from `C:` | copy completes, size matches source |
-| 7 | Right-click → Properties on that file | size, created and modified times are sane |
-| 8 | Enumerate a large directory | listing completes, no truncation, no hang |
-| 9 | Delete a file, then a folder | both disappear; recycle-bin behaviour noted |
-| 10 | Unmount while Explorer has `S:` open | no crash, no Explorer restart, `S:` disappears |
+1. Explorer → `S:` opens and shows the root
+2. Right-click → New → Folder
+3. Create a text file; open in Notepad; type; save; close; reopen — content persists
+4. Copy a 10 MB file into `S:`
+5. Copy it back out under a new name; `Get-FileHash` both and compare
+6. Rename a file; rename a folder
+7. Delete a file; delete a folder
+8. **Create 5,000 files in one directory; `Get-ChildItem S:\many | Measure-Object` returns exactly 5,000**
+9. Create a 10-level nested path and browse to the bottom
+10. Right-click → Properties — size and timestamps sane
 
-Record: for each step, PASS/FAIL, what was observed, and any dialog text
-verbatim. Save as `H1-explorer.md` in this directory.
+**Evidence goes to `docs/evidence/phase-1/explorer/`** — that exact directory;
+`collect-evidence.ps1` looks for it and currently reports it OUTSTANDING.
 
-*Automated coverage that does NOT substitute:* `mount-functional-test.ps1`
-performs equivalent filesystem operations programmatically (21/21 PASS). It
-proves the filesystem serves those operations; it proves nothing about the
-Explorer shell.
+The manual notes: *step 8 is the manual counterpart of INV-DIR-2; correct at 50
+entries and truncated at 5,000 is the classic marker bug.* Record the exact
+count returned, not "looked fine".
+
+*Automated coverage that does NOT substitute:* `mount-functional-test.ps1` does
+equivalent operations programmatically (21/21 PASS). That proves the filesystem
+serves them. It proves nothing about the Explorer shell, which is what §9.2 and
+§17.5 ask for.
 
 ---
 
@@ -65,92 +79,110 @@ Explorer shell.
 
 **STATUS: NEEDS HUMAN**
 
+Row `Notepad` of the §16.3 matrix: create, read, write, rename, delete,
+enumerate, properties — record **observed behaviour, not expected**.
+
 1. Open Notepad, type text, Save As to `S:\notepad-test.txt`.
-2. Close Notepad, reopen the file from `S:`. Content must match.
-3. Append text, save again, reopen. Both parts must be present.
-4. Save As over an existing file on `S:` and accept the overwrite prompt.
+2. Close Notepad, reopen from `S:`. Content must match.
+3. Append, save, reopen. Both parts present.
+4. Save As over an existing file on `S:`; accept the overwrite prompt.
 
-Record observed behaviour and any error dialog verbatim as `H2-notepad.md`.
+Record verbatim error dialog text if any. File as `H2-notepad.md`, and add the
+row to `docs/evidence/phase-1/compatibility-matrix.md`.
 
-*Why a human:* Notepad's save path uses replace-and-rename semantics that the
-scripted `.NET`/`cmd` clients in `compatibility-matrix.md` do not exercise.
+*Why a human:* Notepad saves via replace-and-rename, which the scripted `.NET`
+and `cmd` clients do not exercise.
 
 ---
 
-## H3 — 7-Zip (§16.3)
+## H3 — 7-Zip or similar (§16.3)
 
 **STATUS: NEEDS HUMAN**
+
+Row `7-Zip or similar` of the §16.3 matrix.
 
 1. Create an archive **from** a folder on `S:`.
 2. Extract that archive **to** a folder on `S:`.
-3. Compare extracted contents against the originals (7-Zip's own CRC test is
-   acceptable, `Get-FileHash` comparison is better).
+3. Verify extracted contents against the originals (7-Zip CRC test acceptable;
+   `Get-FileHash` comparison better).
 4. Open an archive stored on `S:` and browse it without extracting.
 
-Record as `H3-7zip.md`, including 7-Zip's version and any reported CRC errors.
+Record 7-Zip version and any CRC errors. File as `H3-7zip.md`, and add the row
+to the compatibility matrix.
 
 ---
 
-## H4 — Explorer responsiveness during a hung operation (§13.2 assertion 3)
+## H4 — Explorer responsiveness during an injected hang (§13.2 point 3)
 
 **STATUS: NEEDS HUMAN**
 
-This is the one assertion of §13.2 that automation cannot make. The other
-assertions are proven — see `fault-injection-run-2026-09-10-1946.txt`.
+This is the one point of §13.2 automation cannot make. Points 1, 2, 4, 5, 6 and
+7 are proven — see `fault-injection.txt` (31 of 32 assertions, all six fault
+points, max callback 30011 ms against a 30500 ms bound).
 
 ```powershell
 cd C:\SPACE\src\space
 $env:SPACE_FAULT = "winfsp_pre_read=hang"
 Start-Process .\target\debug\space-client-fault.exe -ArgumentList "--config",".\config.toml"
-# wait for S: to appear, then create a file on it and try to READ it from Explorer
+# wait for S:, create a file on it, then try to READ it from Explorer
 ```
 
-While the read is hung (up to `callback_timeout_ms`, 30 s by default), observe:
+While the read is hung (up to `callback_timeout_ms`, 30 s), observe:
 
-- Does Explorer as a whole stay responsive — can you interact with other windows
-  and other drives?
-- Does the Explorer window showing `S:` grey out or show "Not Responding"?
-- After the deadline expires, does an error dialog appear rather than an
-  indefinite hang?
+- Does Explorer stay responsive — other windows, other drives usable?
+- Does the window showing `S:` grey out or say "Not Responding"?
+- After the deadline, does an error dialog appear rather than an indefinite hang?
 
-Record as `H4-explorer-under-hang.md`. Note the exact wait before the error
-appeared. Then stop the client and clear `SPACE_FAULT`.
+§17.2's bullet is *"Explorer never becomes **permanently** unresponsive"* —
+temporary blocking of the `S:` window is expected under §3.6; permanent is a
+gate failure. Record the exact wait before the error appeared.
+
+File as `H4-explorer-under-hang.md`. Then stop the client and clear `SPACE_FAULT`.
 
 ---
 
-## H5 — ProcMon write confinement (§16.4)
+## H5 — No-arbitrary-writes evidence (§16.4, INV-NS-6 external half)
 
-**STATUS: NEEDS HUMAN — currently BLOCKED on this**
+**STATUS: NEEDS HUMAN — §16.4 is currently BLOCKED on this**
+
+Follow §16.4 exactly. The pass condition is narrower than "somewhere sensible".
 
 1. Start Process Monitor.
-2. Filter: `Process Name is space-client.exe`, include `WriteFile`,
-   `CreateFile` with write access, `SetDispositionInformationFile`.
-3. With that filter live, exercise the mount: create, write, rename and delete
-   files on `S:`.
+2. Filter: **`Process Name is space-client.exe`** *and* **`Operation is WriteFile`**.
+   (Only `WriteFile` — that is what the manual specifies.)
+3. **Run the full I/O stress** with the filter live:
+   ```powershell
+   .\scripts\io-stress.ps1 -Minutes 30 -Drive S
+   ```
 4. Inspect every captured write path.
 
-**Pass condition:** no write outside `C:\SPACE\runtime` and the mounted volume
-itself. Specifically none to `C:\Windows`, none to the user profile, none to
-`Program Files`.
+**Pass condition, verbatim from §16.4:** the only write targets are
+`C:\SPACE\runtime\logs\*` — **nothing under `C:\Windows`, nothing in the source
+tree, nothing under `C:\Users`.**
 
-Export the filtered capture as `procmon-writes.csv` into
-`docs/evidence/phase-1/` — `collect-evidence.ps1` looks for it by that exact
-name and currently reports it OUTSTANDING.
+> Correction to the earlier draft of this file: it said "no write outside
+> `C:\SPACE\runtime` **and the mounted volume**". That is looser than the manual
+> and would have passed a run the manual fails. The manual says
+> `C:\SPACE\runtime\logs\*`.
 
-Record conclusions as `H5-procmon.md`.
+Export the filtered capture as CSV to **`docs/evidence/phase-1/procmon-writes.csv`**
+— that exact path and name; `collect-evidence.ps1` looks for it and currently
+reports it OUTSTANDING.
+
+File conclusions as `H5-procmon.md`. This also supplies the ProcMon half of
+§17.5's *"path traversal cannot escape the namespace — logically and by
+ProcMon"*; the logical half is already proven by `conformance/naming.rs`.
 
 ---
 
-## What to do with the results
-
-Drop the five `.md` files (and `procmon-writes.csv`) into place, then re-run:
+## After the five are done
 
 ```powershell
 cd C:\SPACE\src\space
 .\scripts\collect-evidence.ps1
 ```
 
-It will pick up `procmon-writes.csv` and stop reporting it as outstanding. The
-five requirement rows in `REQUIREMENTS.md` — R-S4-5, R-S9-2, R-S13-3 (Explorer
-assertion), R-S16-3 (GUI rows) and R-S16-4 — should then be updated **by the
-person who performed the tests**, with their observations as the evidence.
+It will pick up `procmon-writes.csv` and `explorer/` and stop reporting them
+OUTSTANDING. Then update these rows in `REQUIREMENTS.md` — **by the person who
+performed the tests**, with their observations as the evidence: R-S4-5, R-S9-2,
+R-S13-3 (Explorer point only), R-S16-3 (GUI rows) and R-S16-4.
