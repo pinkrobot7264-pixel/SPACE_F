@@ -57,3 +57,50 @@ Commits landed after it. A final push and a fresh CI run at the certification
 HEAD are required before `collect-evidence.ps1`, and this file must be updated
 with that run id. Until then §17.3/§17.7 are **PASS at `abaf369`, re-run
 required at final HEAD**.
+
+---
+
+# FINAL CERTIFICATION RUN
+
+- Commit: **`a68d3d8`** (final HEAD; local == remote, working tree clean)
+- Run id: **`34513250205`**
+- URL: https://github.com/pinkrobot7264-pixel/SPACE_F/actions/runs/34513250205
+- Conclusion: **success**
+
+Verified job-by-job and step-by-step through the Actions API.
+
+## `conformance-no-winfsp` — success (§11.2)
+
+| step | result |
+|---|---|
+| Set up job / checkout / rust-toolchain | success |
+| **Assert WinFsp is NOT installed** | **success** |
+| **Build the core without WinFsp** | **success** |
+| **Conformance suite, no mount** | **success** |
+| **Conformance suite in release (ADR-0013 panic model)** | **success** |
+| Post checkout / Complete job | success |
+
+## `windows` — success
+
+| step | result |
+|---|---|
+| Set up job / checkout | success |
+| Install WinFsp / Verify WinFsp developer files | success |
+| rust-toolchain / install-action@nextest | success |
+| **Format** | **success** |
+| **Lint** (`clippy -D warnings`) | **success** |
+| **Build workspace (debug)** | **success** |
+| **Test** (`nextest run --workspace`) | **success** |
+| **Release build** | **success** |
+| **Release build must not enable fault injection** | **success** |
+| Set up MSVC | success |
+| **C++ WinFsp adapter (MSVC + Ninja)** | **success** |
+| **Secret scan** (gitleaks) | **success** |
+| Post checkout / Complete job | success |
+
+**All 26 steps across both jobs succeeded. None skipped.**
+
+Note on supersession: run `34513030704` was for `fd41d67`. A later commit
+(`a68d3d8`) recorded the soak result and the manual-is-external note, so
+`fd41d67` is no longer the final HEAD and its run does not certify this state.
+The run above is the one that does.
